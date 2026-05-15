@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChatTeam CNTT1808</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="chat.css" />
+  <style>
+    /* Bổ sung giao diện Lưới Video cho Gọi Nhóm */
+    .video-grid {
+      position: absolute; inset: 0;
+      display: flex; flex-wrap: wrap; align-content: center; justify-content: center;
+      background: #1a1a2e;
+    }
+    .video-grid video {
+      flex: 1 1 50%; min-width: 50%; max-height: 100%; object-fit: cover;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .call-modal.voice-only .video-grid { display: none; }
+  </style>
+</head>
+<body>
+
+<div id="authScreen" class="auth-screen">
+  <main class="app">
+    <section class="intro">
+      <div class="logo">
+        <div class="logo-icon"><i class="ti ti-message-circle"></i></div>
+        <div>
+          <h2>ChatTeam CNTT1808</h2>
+          <p>Đại học Đại Nam</p>
+        </div>
+      </div>
+      <div class="intro-content">
+        <h1>Kết nối nhóm,<br>học tốt hơn.</h1>
+        <p>Nền tảng chat nội bộ cho sinh viên CNTT1808: nhắn tin, gọi video, gửi file, tạo nhóm và quản lý thành viên.</p>
+      </div>
+      <div class="features">
+        <div class="feature"><span><i class="ti ti-message-dots"></i></span>Chat realtime</div>
+        <div class="feature"><span><i class="ti ti-video"></i></span>Voice & video call nhóm</div>
+        <div class="feature"><span><i class="ti ti-paperclip"></i></span>Gửi ảnh & file</div>
+        <div class="feature"><span><i class="ti ti-users-group"></i></span>Tạo nhóm học tập</div>
+      </div>
+    </section>
+
+    <section class="auth">
+      <div class="auth-card">
+        <div class="tabs">
+          <button id="loginTab" class="tab active" type="button">Đăng nhập</button>
+          <button id="registerTab" class="tab" type="button">Đăng ký</button>
+        </div>
+
+        <form id="loginForm" class="form active">
+          <h2>Chào mừng trở lại</h2>
+          <p class="form-desc">Đăng nhập để vào ChatTeam CNTT1808</p>
+          <label>Tài khoản / Số điện thoại</label>
+          <div class="input-box">
+            <input id="loginAccount" type="text" placeholder="VD: 0901234567" />
+            <i class="ti ti-user"></i>
+          </div>
+          <label>Mật khẩu</label>
+          <div class="input-box">
+            <input id="loginPassword" type="password" placeholder="Nhập mật khẩu" />
+            <i class="ti ti-lock"></i>
+          </div>
+          <div class="form-options">
+            <label class="remember"><input type="checkbox" />Ghi nhớ</label>
+            <button id="forgotBtn" type="button" class="link-btn">Quên mật khẩu?</button>
+          </div>
+          <button class="main-btn" type="submit"><i class="ti ti-login"></i>Đăng nhập</button>
+          <p class="switch-text">Chưa có tài khoản? <button type="button" id="goRegister">Đăng ký ngay</button></p>
+        </form>
+
+        <form id="registerForm" class="form">
+          <h2>Tạo tài khoản</h2>
+          <p class="form-desc">Đăng ký tài khoản mới cho thành viên</p>
+          <label>Họ và tên</label>
+          <div class="input-box">
+            <input id="regName" type="text" placeholder="VD: Lê Đức Hà" />
+            <i class="ti ti-user-plus"></i>
+          </div>
+          <label>Số điện thoại</label>
+          <div class="input-box">
+            <input id="regPhone" type="text" placeholder="VD: 0912345678" />
+            <i class="ti ti-phone"></i>
+          </div>
+          <label>Mật khẩu</label>
+          <div class="input-box">
+            <input id="regPassword" type="password" placeholder="Tối thiểu 6 ký tự" />
+            <i class="ti ti-lock"></i>
+          </div>
+          <label>Nhập lại mật khẩu</label>
+          <div class="input-box">
+            <input id="regConfirm" type="password" placeholder="Nhập lại mật khẩu" />
+            <i class="ti ti-lock-check"></i>
+          </div>
+          <button class="main-btn" type="submit"><i class="ti ti-user-check"></i>Đăng ký</button>
+          <p class="switch-text">Đã có tài khoản? <button type="button" id="goLogin">Đăng nhập</button></p>
+        </form>
+
+        <form id="forgotForm" class="form">
+          <h2>Quên mật khẩu</h2>
+          <p class="form-desc">Nhập số điện thoại để nhận hướng dẫn đặt lại mật khẩu</p>
+          <label>Số điện thoại</label>
+          <div class="input-box">
+            <input id="forgotPhone" type="text" placeholder="VD: 0912345678" />
+            <i class="ti ti-phone-call"></i>
+          </div>
+          <button class="main-btn" type="submit"><i class="ti ti-send"></i>Gửi yêu cầu</button>
+          <p class="switch-text">Nhớ mật khẩu rồi? <button type="button" id="backLogin">Quay lại đăng nhập</button></p>
+        </form>
+
+        <p id="message" class="message"></p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="chatScreen" class="chat-screen hidden">
+
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-user" id="sidebarUser">
+        <div class="avatar-wrap">
+          <div class="avatar" id="myAvatar">?</div>
+          <span class="online-dot"></span>
+        </div>
+        <div class="user-info">
+          <span class="user-name" id="myName">Người dùng</span>
+          <span class="user-status">Đang hoạt động</span>
+        </div>
+      </div>
+      <div class="sidebar-actions">
+        <button class="icon-btn" id="newGroupBtn" title="Tạo nhóm"><i class="ti ti-users-plus"></i></button>
+        <button class="icon-btn" id="logoutBtn" title="Đăng xuất"><i class="ti ti-logout"></i></button>
+      </div>
+    </div>
+
+    <div class="sidebar-search">
+      <div class="search-box">
+        <i class="ti ti-search"></i>
+        <input type="text" id="searchInput" placeholder="Tìm kiếm..." />
+      </div>
+    </div>
+
+    <div class="sidebar-tabs">
+      <button class="s-tab active" data-tab="chats"><i class="ti ti-message"></i><span>Tin nhắn</span></button>
+      <button class="s-tab" data-tab="contacts"><i class="ti ti-users"></i><span>Bạn bè</span></button>
+      <button class="s-tab" data-tab="find"><i class="ti ti-user-search"></i><span>Tìm bạn</span></button>
+      <button class="s-tab" data-tab="groups"><i class="ti ti-users-group"></i><span>Nhóm</span></button>
+    </div>
+
+    <div class="conversation-list" id="convList">
+      </div>
+  </aside>
+
+  <main class="chat-main">
+    <div class="chat-welcome" id="chatWelcome">
+      <div class="welcome-icon"><i class="ti ti-message-circle-heart"></i></div>
+      <h2>Chào mừng đến ChatTeam</h2>
+      <p>Chọn một cuộc trò chuyện để bắt đầu nhắn tin hoặc gọi nhóm</p>
+    </div>
+
+    <div class="chat-window hidden" id="chatWindow">
+      <div class="chat-header">
+        <button class="icon-btn back-btn" id="backBtn"><i class="ti ti-arrow-left"></i></button>
+        <div class="chat-header-info" id="chatHeaderInfo">
+          <div class="avatar" id="chatAvatar">?</div>
+          <div>
+            <div class="chat-name" id="chatName">Tên</div>
+            <div class="chat-status" id="chatStatus">Đang hoạt động</div>
+          </div>
+        </div>
+        <div class="chat-header-actions">
+          <button class="icon-btn" id="voiceCallBtn" title="Gọi thoại"><i class="ti ti-phone"></i></button>
+          <button class="icon-btn" id="videoCallBtn" title="Gọi video"><i class="ti ti-video"></i></button>
+          <button class="icon-btn" id="moreBtn" title="Thêm"><i class="ti ti-dots-vertical"></i></button>
+        </div>
+      </div>
+
+      <div class="messages-area" id="messagesArea">
+      </div>
+
+      <div class="input-area">
+        <div class="input-tools">
+          <button class="tool-btn" id="stickerBtn" title="Sticker"><i class="ti ti-mood-smile"></i></button>
+          <button class="tool-btn" id="imageBtn" title="Ảnh"><i class="ti ti-photo"></i></button>
+          <button class="tool-btn" id="fileBtn" title="File"><i class="ti ti-paperclip"></i></button>
+          <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx,.zip" hidden />
+          <input type="file" id="imageInput" accept="image/*" hidden />
+        </div>
+        <div class="msg-input-wrap">
+          <textarea id="msgInput" placeholder="Nhập tin nhắn..." rows="1"></textarea>
+        </div>
+        <button class="tool-btn voice-btn" id="voiceMsgBtn" title="Tin nhắn thoại"><i class="ti ti-microphone"></i></button>
+        <button class="send-btn" id="sendBtn"><i class="ti ti-send"></i></button>
+      </div>
+    </div>
+  </main>
+
+  <div class="right-panel hidden" id="rightPanel">
+    <div class="panel-header">
+      <span>Thông tin</span>
+      <button class="icon-btn" id="closePanelBtn"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="panel-body" id="panelBody"></div>
+  </div>
+</div>
+
+<div class="sticker-picker hidden" id="stickerPicker">
+  <div class="sticker-header">
+    <span>Sticker & Emoji</span>
+    <button class="icon-btn" id="closeStickerBtn"><i class="ti ti-x"></i></button>
+  </div>
+  <div class="sticker-tabs">
+    <button class="stk-tab active" data-cat="emoji">😀 Emoji</button>
+    <button class="stk-tab" data-cat="animals">🐱 Thú cưng</button>
+    <button class="stk-tab" data-cat="food">🍜 Đồ ăn</button>
+    <button class="stk-tab" data-cat="study">📚 Học tập</button>
+    <button class="stk-tab" data-cat="feelings">❤️ Cảm xúc</button>
+  </div>
+  <div class="sticker-grid" id="stickerGrid"></div>
+</div>
+
+<div class="call-modal hidden" id="callModal">
+  <div class="call-container">
+    <div id="videoGrid" class="video-grid">
+      </div>
+    <video id="localVideo" autoplay playsinline muted></video>
+    <div class="call-overlay">
+      <div class="call-info">
+        <div class="avatar call-avatar" id="callAvatar">?</div>
+        <div class="call-name" id="callName">Tên</div>
+        <div class="call-status" id="callStatus">Đang gọi...</div>
+      </div>
+      <div class="call-controls">
+        <button class="call-btn" id="toggleMicBtn" title="Tắt/bật mic"><i class="ti ti-microphone"></i></button>
+        <button class="call-btn danger" id="endCallBtn" title="Kết thúc"><i class="ti ti-phone-off"></i></button>
+        <button class="call-btn" id="toggleCamBtn" title="Tắt/bật camera"><i class="ti ti-video"></i></button>
+        <button class="call-btn" id="toggleScreenBtn" title="Chia sẻ màn hình"><i class="ti ti-screen-share"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="incoming-call hidden" id="incomingCall">
+  <div class="incoming-inner">
+    <div class="avatar incoming-avatar" id="incomingAvatar">?</div>
+    <div class="incoming-name" id="incomingName">Tên</div>
+    <div class="incoming-type" id="incomingType">Cuộc gọi video</div>
+    <div class="incoming-btns">
+      <button class="call-btn danger" id="rejectCallBtn"><i class="ti ti-phone-off"></i><span>Từ chối</span></button>
+      <button class="call-btn success" id="acceptCallBtn"><i class="ti ti-phone-incoming"></i><span>Chấp nhận</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="newGroupModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Tạo nhóm mới</h3>
+      <button class="icon-btn" id="closeGroupModal"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <label>Tên nhóm</label>
+      <input type="text" id="groupNameInput" placeholder="VD: Nhóm Đề Tài Web" class="modal-input" />
+      <label style="margin-top:14px;">Chọn thành viên</label>
+      <div id="membersList" class="members-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="main-btn" id="createGroupBtn"><i class="ti ti-users-plus"></i>Tạo nhóm</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="unfriendModal">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-header">
+      <h3>Xóa bạn bè</h3>
+      <button class="icon-btn" id="closeUnfriendModal"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:#6b7280;line-height:1.6;">Bạn có chắc muốn xóa <strong id="unfriendName"></strong> khỏi danh sách bạn bè? Lịch sử trò chuyện vẫn được giữ lại.</p>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px;">
+      <button class="panel-btn" id="cancelUnfriendBtn" style="flex:1;justify-content:center;">Hủy</button>
+      <button class="main-btn" id="confirmUnfriendBtn" style="background:#e53935;flex:1;"><i class="ti ti-user-minus"></i>Xóa bạn</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script type="module">
+  window.APP = {};
+  const APP = window.APP;
+
+  // BroadcastChannel for same-browser multi-tab realtime
+  let bc;
+  try { bc = new BroadcastChannel('cntt1808_chat'); } catch(e) { bc = { postMessage: () => {}, addEventListener: () => {} }; }
+
+  // ===== DATA STORE =====
+  function loadUsers() {
+    const d = localStorage.getItem('cntt1808_users');
+    if (d) return JSON.parse(d);
+    const defaults = [
+      { id: 'u1', name: 'Lê Đức Hà', phone: '0901234567', password: '123456', avatar: '🧑‍💻', status: 'online' },
+      { id: 'u2', name: 'CNTT1808 Admin', phone: '0912345678', password: '123456', avatar: '👨‍🏫', status: 'online' },
+      { id: 'u3', name: 'Nguyễn Thị Mai', phone: '0923456789', password: '123456', avatar: '👩‍🎓', status: 'offline' },
+      { id: 'u4', name: 'Trần Văn Bình', phone: '0934567890', password: '123456', avatar: '👦', status: 'offline' },
+      { id: 'u5', name: 'Phạm Thu Hà', phone: '0945678901', password: '123456', avatar: '👩', status: 'online' },
+    ];
+    saveUsers(defaults);
+    return defaults;
+  }
+
+  function saveUsers(users) { localStorage.setItem('cntt1808_users', JSON.stringify(users)); }
+
+  function loadMessages(convId) {
+    const d = localStorage.getItem('cntt1808_msgs_' + convId);
+    return d ? JSON.parse(d) : [];
+  }
+
+  function saveMessage(convId, msg) {
+    const msgs = loadMessages(convId);
+    msgs.push(msg);
+    localStorage.setItem('cntt1808_msgs_' + convId, JSON.stringify(msgs));
+    try { bc.postMessage({ type: 'new_message', convId, msg }); } catch(e) {}
+    return msg;
+  }
+
+  function loadGroups() {
+    const d = localStorage.getItem('cntt1808_groups');
+    return d ? JSON.parse(d) : [];
+  }
+
+  function saveGroups(groups) { localStorage.setItem('cntt1808_groups', JSON.stringify(groups)); }
+
+  // ===== FRIEND SYSTEM =====
+  function loadFriends(uid) {
+    const d = localStorage.getItem('cntt1808_friends_' + uid);
+    return d ? JSON.parse(d) : [];
+  }
+  function saveFriends(uid, list) {
+    localStorage.setItem('cntt1808_friends_' + uid, JSON.stringify(list));
+    try { bc.postMessage({ type: 'friend_update' }); } catch(e) {}
+  }
+  function loadRequests() {
+    const d = localStorage.getItem('cntt1808_freq');
+    return d ? JSON.parse(d) : [];
+  }
+  function saveRequests(reqs) {
+    localStorage.setItem('cntt1808_freq', JSON.stringify(reqs));
+    try { bc.postMessage({ type: 'friend_update' }); } catch(e) {}
+  }
+  function isFriend(uid) { return loadFriends(APP.currentUser.id).includes(uid); }
+  function hasPendingRequestTo(uid) {
+    return loadRequests().some(r => r.fromId === APP.currentUser.id && r.toId === uid && r.status === 'pending');
+  }
+  function hasPendingRequestFrom(uid) {
+    return loadRequests().some(r => r.fromId === uid && r.toId === APP.currentUser.id && r.status === 'pending');
+  }
+  function countPendingIncoming() {
+    return loadRequests().filter(r => r.toId === APP.currentUser.id && r.status === 'pending').length;
+  }
+  
+  function getConvId(uid1, uid2) {
+    return [uid1, uid2].sort().join('_');
+  }
+
+  window.handleAddFriend = function(toId) {
+    const reqs = loadRequests();
+    if (reqs.some(r => r.fromId === APP.currentUser.id && r.toId === toId && r.status === 'pending')) return;
+    reqs.push({ id: 'fr_' + Date.now(), fromId: APP.currentUser.id, toId, status: 'pending', time: Date.now() });
+    saveRequests(reqs);
+    showToast('Đã gửi lời mời kết bạn!', 'success');
+    renderConvList(document.getElementById('searchInput').value);
+  };
+
+  window.handleAccept = function(fromId) {
+    const reqs = loadRequests();
+    const req = reqs.find(r => r.fromId === fromId && r.toId === APP.currentUser.id && r.status === 'pending');
+    if (!req) return;
+    req.status = 'accepted';
+    saveRequests(reqs);
+
+    const myFriends = loadFriends(APP.currentUser.id);
+    if (!myFriends.includes(fromId)) { myFriends.push(fromId); saveFriends(APP.currentUser.id, myFriends); }
+    const theirFriends = loadFriends(fromId);
+    if (!theirFriends.includes(APP.currentUser.id)) { theirFriends.push(APP.currentUser.id); saveFriends(fromId, theirFriends); }
+    
+    const users = loadUsers();
+    const u = users.find(u => u.id === fromId);
+    showToast(`✅ Đã chấp nhận kết bạn với ${u?.name || ''}!`, 'success');
+    renderConvList(document.getElementById('searchInput').value);
+  };
+
+  window.handleReject = function(fromId) {
+    const reqs = loadRequests();
+    const index = reqs.findIndex(r => r.fromId === fromId && r.toId === APP.currentUser.id && r.status === 'pending');
+    if (index > -1) { reqs.splice(index, 1); saveRequests(reqs); }
+    showToast('Đã từ chối lời mời.', 'info');
+    renderConvList(document.getElementById('searchInput').value);
+  };
+
+  let unfriendTargetId = null;
+  window.openUnfriendModal = function(u) {
+    unfriendTargetId = u.id;
+    document.getElementById('unfriendName').textContent = u.name;
+    document.getElementById('unfriendModal').classList.remove('hidden');
+  };
+
+  document.getElementById('closeUnfriendModal').onclick = () => document.getElementById('unfriendModal').classList.add('hidden');
+  document.getElementById('cancelUnfriendBtn').onclick = () => document.getElementById('unfriendModal').classList.add('hidden');
+  
+  document.getElementById('confirmUnfriendBtn').onclick = () => {
+    if (!unfriendTargetId) return;
+    const uid = unfriendTargetId;
+    
+    const myFriends = loadFriends(APP.currentUser.id).filter(id => id !== uid);
+    saveFriends(APP.currentUser.id, myFriends);
+    const theirFriends = loadFriends(uid).filter(id => id !== APP.currentUser.id);
+    saveFriends(uid, theirFriends);
+    
+    const reqs = loadRequests().filter(r => !((r.fromId === APP.currentUser.id && r.toId === uid) || (r.fromId === uid && r.toId === APP.currentUser.id)));
+    saveRequests(reqs);
+
+    document.getElementById('unfriendModal').classList.add('hidden');
+    document.getElementById('rightPanel').classList.add('hidden');
+    showToast(`Đã xóa khỏi danh sách bạn bè.`, 'info');
+    unfriendTargetId = null;
+    renderConvList(document.getElementById('searchInput').value);
+  };
+
+  // ===== STATE =====
+  APP.currentUser = null;
+  APP.activeConvId = null;
+  APP.activeConvType = null;
+  APP.activeConvTarget = null;
+
+  // ===== AUTH =====
+  const authScreen = document.getElementById('authScreen');
+  const chatScreen = document.getElementById('chatScreen');
+
+  function showToast(msg, type = 'info') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + type;
+    setTimeout(() => t.className = 'toast hidden', 3000);
+  }
+
+  function validPhone(p) { return /^0[0-9]{9}$/.test(p); }
+
+  const loginTab = document.getElementById('loginTab');
+  const registerTab = document.getElementById('registerTab');
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const forgotForm = document.getElementById('forgotForm');
+  const msgEl = document.getElementById('message');
+
+  function showForm(type) {
+    [loginForm, registerForm, forgotForm].forEach(f => f.classList.remove('active'));
+    [loginTab, registerTab].forEach(t => t.classList.remove('active'));
+    msgEl.textContent = ''; msgEl.className = 'message';
+    if (type === 'login') { loginForm.classList.add('active'); loginTab.classList.add('active'); }
+    if (type === 'register') { registerForm.classList.add('active'); registerTab.classList.add('active'); }
+    if (type === 'forgot') forgotForm.classList.add('active');
+  }
+
+  function showMsg(text, cls) { msgEl.textContent = text; msgEl.className = 'message ' + cls; }
+
+  loginTab.onclick = () => showForm('login');
+  registerTab.onclick = () => showForm('register');
+  document.getElementById('goRegister').onclick = () => showForm('register');
+  document.getElementById('goLogin').onclick = () => showForm('login');
+  document.getElementById('forgotBtn').onclick = () => showForm('forgot');
+  document.getElementById('backLogin').onclick = () => showForm('login');
+
+  loginForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const account = document.getElementById('loginAccount').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    if (!account || !password) { showMsg('Vui lòng nhập đầy đủ thông tin.', 'error'); return; }
+    const users = loadUsers();
+    const user = users.find(u => u.phone === account || u.name.toLowerCase() === account.toLowerCase());
+    if (!user) { showMsg('Không tìm thấy tài khoản.', 'error'); return; }
+    if (user.password !== password) { showMsg('Mật khẩu không đúng.', 'error'); return; }
+    user.status = 'online';
+    saveUsers(users);
+    APP.currentUser = user;
+    localStorage.setItem('cntt1808_session', user.id);
+    showMsg('Đăng nhập thành công! Chào ' + user.name, 'success');
+    setTimeout(enterChat, 800);
+  });
+
+  registerForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const name = document.getElementById('regName').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const password = document.getElementById('regPassword').value.trim();
+    const confirm = document.getElementById('regConfirm').value.trim();
+    if (!name || !phone || !password || !confirm) { showMsg('Vui lòng nhập đầy đủ.', 'error'); return; }
+    if (!validPhone(phone)) { showMsg('Số điện thoại không hợp lệ.', 'error'); return; }
+    if (password.length < 6) { showMsg('Mật khẩu phải ít nhất 6 ký tự.', 'error'); return; }
+    if (password !== confirm) { showMsg('Mật khẩu không khớp.', 'error'); return; }
+    const users = loadUsers();
+    if (users.some(u => u.phone === phone)) { showMsg('Số điện thoại đã được đăng ký.', 'error'); return; }
+    const avatars = ['🧑','👩','👦','👧','🧑‍💻','👩‍💻','👨‍🎓','👩‍🎓','🦸','🧙'];
+    const newUser = { id: 'u_' + Date.now(), name, phone, password, avatar: avatars[Math.floor(Math.random()*avatars.length)], status: 'online' };
+    users.push(newUser);
+    saveUsers(users);
+    showMsg('Đăng ký thành công! Đang đăng nhập...', 'success');
+    APP.currentUser = newUser;
+    localStorage.setItem('cntt1808_session', newUser.id);
+    setTimeout(enterChat, 1000);
+  });
+
+  forgotForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const phone = document.getElementById('forgotPhone').value.trim();
+    if (!validPhone(phone)) { showMsg('Số điện thoại không hợp lệ.', 'error'); return; }
+    const users = loadUsers();
+    if (!users.some(u => u.phone === phone)) { showMsg('Số điện thoại chưa có tài khoản.', 'error'); return; }
+    showMsg('Đã ghi nhận yêu cầu đặt lại mật khẩu.', 'success');
+  });
+
+  const savedSession = localStorage.getItem('cntt1808_session');
+  if (savedSession) {
+    const users = loadUsers();
+    const user = users.find(u => u.id === savedSession);
+    if (user) { APP.currentUser = user; enterChat(); }
+  }
+
+  function enterChat() {
+    authScreen.classList.add('hidden');
+    chatScreen.classList.remove('hidden');
+    initChat();
+  }
+
+  function initChat() {
+    const u = APP.currentUser;
+    document.getElementById('myName').textContent = u.name;
+    document.getElementById('myAvatar').textContent = u.avatar;
+    renderConvList();
+    setupBroadcastListener();
+  }
+
+  document.getElementById('logoutBtn').onclick = () => {
+    const users = loadUsers();
+    const u = users.find(u => u.id === APP.currentUser.id);
+    if (u) { u.status = 'offline'; saveUsers(users); }
+    localStorage.removeItem('cntt1808_session');
+    APP.currentUser = null;
+    chatScreen.classList.add('hidden');
+    authScreen.classList.remove('hidden');
+    showForm('login');
+  };
+
+  // ===== CONVERSATION LIST =====
+  function updateFindBadge() {
+    const count = countPendingIncoming();
+    const tab = document.querySelector('.s-tab[data-tab="find"]');
+    if (!tab) return;
+    let badge = tab.querySelector('.tab-badge');
+    if (count > 0) {
+      if (!badge) { badge = document.createElement('span'); badge.className = 'tab-badge'; tab.appendChild(badge); }
+      badge.textContent = count;
+    } else if (badge) badge.remove();
+  }
+
+  function renderConvList(filter = '') {
+    const allUsers = loadUsers().filter(u => u.id !== APP.currentUser.id);
+    const groups = loadGroups().filter(g => g.members.includes(APP.currentUser.id));
+    const convList = document.getElementById('convList');
+    convList.innerHTML = '';
+    updateFindBadge();
+
+    const activeTab = document.querySelector('.s-tab.active')?.dataset.tab || 'chats';
+
+    if (activeTab === 'groups') {
+      groups.filter(g => !filter || g.name.toLowerCase().includes(filter.toLowerCase())).forEach(g => {
+        convList.appendChild(createConvItem(g.id, g.name, '👥', g.lastMsg || 'Chưa có tin nhắn', g.lastTime, 'group', g));
+      });
+      if (!groups.length) convList.innerHTML = '<div class="empty-list"><i class="ti ti-users-group"></i><p>Chưa có nhóm nào</p></div>';
+      return;
+    }
+
+    if (activeTab === 'contacts') {
+      const friendIds = loadFriends(APP.currentUser.id);
+      const friends = allUsers.filter(u => friendIds.includes(u.id) && (!filter || u.name.toLowerCase().includes(filter.toLowerCase())));
+      if (friends.length === 0) {
+        convList.innerHTML = '<div class="empty-list"><i class="ti ti-users"></i><p>Chưa có bạn bè nào<br><small>Vào "Tìm bạn" để thêm bạn</small></p></div>';
+        return;
+      }
+      friends.forEach(u => {
+        const convId = getConvId(APP.currentUser.id, u.id);
+        const msgs = loadMessages(convId);
+        const last = msgs[msgs.length - 1];
+        const item = createConvItem(convId, u.name, u.avatar, last?.text || 'Nhấn để chat', last?.time, 'dm', u);
+        const meta = item.querySelector('.conv-meta');
+        const unfBtn = document.createElement('button');
+        unfBtn.className = 'unfriend-btn';
+        unfBtn.innerHTML = '<i class="ti ti-user-minus"></i>';
+        unfBtn.title = 'Xóa bạn';
+        unfBtn.onclick = e => { e.stopPropagation(); openUnfriendModal(u); };
+        meta.appendChild(unfBtn);
+        convList.appendChild(item);
+      });
+      return;
+    }
+
+    if (activeTab === 'find') {
+      renderFindTab(filter);
+      return;
+    }
+
+    const friendIds = loadFriends(APP.currentUser.id);
+    const allItems = [];
+    allUsers.filter(u => friendIds.includes(u.id) && (!filter || u.name.toLowerCase().includes(filter.toLowerCase()))).forEach(u => {
+      const convId = getConvId(APP.currentUser.id, u.id);
+      const msgs = loadMessages(convId);
+      const last = msgs[msgs.length - 1];
+      allItems.push({ convId, name: u.name, avatar: u.avatar, lastMsg: last?.text || '', lastTime: last?.time || 0, type: 'dm', target: u });
+    });
+    groups.filter(g => !filter || g.name.toLowerCase().includes(filter.toLowerCase())).forEach(g => {
+      allItems.push({ convId: g.id, name: g.name, avatar: '👥', lastMsg: g.lastMsg || '', lastTime: g.lastTime || 0, type: 'group', target: g });
+    });
+    allItems.sort((a, b) => (b.lastTime || 0) - (a.lastTime || 0));
+    if (allItems.length === 0) {
+      convList.innerHTML = '<div class="empty-list"><i class="ti ti-message-circle"></i><p>Chưa có tin nhắn nào<br><small>Kết bạn để bắt đầu chat</small></p></div>';
+      return;
+    }
+    allItems.forEach(item => {
+      convList.appendChild(createConvItem(item.convId, item.name, item.avatar, item.lastMsg || 'Nhấn để bắt đầu chat', item.lastTime, item.type, item.target));
+    });
+  }
+
+  function renderFindTab(filter = '') {
+    const convList = document.getElementById('convList');
+    convList.innerHTML = '';
+    const myId = APP.currentUser.id;
+    const allUsers = loadUsers().filter(u => u.id !== myId);
+    const friendIds = loadFriends(myId);
+    const reqs = loadRequests();
+
+    const incoming = reqs.filter(r => r.toId === myId && r.status === 'pending');
+    if (incoming.length > 0) {
+      const section = document.createElement('div');
+      section.className = 'find-section-title';
+      section.innerHTML = `<i class="ti ti-bell"></i> Lời mời kết bạn (${incoming.length})`;
+      convList.appendChild(section);
+      incoming.forEach(req => {
+        const u = allUsers.find(u => u.id === req.fromId);
+        if (!u) return;
+        convList.appendChild(createFindItem(u, 'incoming'));
+      });
+      const div = document.createElement('div');
+      div.className = 'find-section-title';
+      div.innerHTML = '<i class="ti ti-users"></i> Tất cả mọi người';
+      convList.appendChild(div);
+    }
+
+    const others = allUsers.filter(u => !filter || u.name.toLowerCase().includes(filter.toLowerCase()) || u.phone.includes(filter));
+    if (others.length === 0) {
+      convList.innerHTML += '<div class="empty-list"><i class="ti ti-user-search"></i><p>Không tìm thấy</p></div>';
+      return;
+    }
+    others.forEach(u => {
+      let state = 'none';
+      if (friendIds.includes(u.id)) state = 'friend';
+      else if (hasPendingRequestTo(u.id)) state = 'sent';
+      else if (hasPendingRequestFrom(u.id)) state = 'incoming';
+      convList.appendChild(createFindItem(u, state));
+    });
+  }
+
+  function createFindItem(u, state) {
+    const div = document.createElement('div');
+    div.className = 'find-item';
+    let actionHtml = '';
+    if (state === 'friend') {
+      actionHtml = `<button class="find-btn friend-btn" onclick="openUnfriendModal(window._findUser_${u.id})"><i class="ti ti-user-check"></i>Bạn bè</button>`;
+    } else if (state === 'sent') {
+      actionHtml = `<button class="find-btn sent-btn" disabled><i class="ti ti-clock"></i>Đã gửi</button>`;
+    } else if (state === 'incoming') {
+      actionHtml = `
+        <button class="find-btn accept-btn" onclick="handleAccept('${u.id}')"><i class="ti ti-check"></i>Chấp nhận</button>
+        <button class="find-btn reject-btn" onclick="handleReject('${u.id}')"><i class="ti ti-x"></i></button>
+      `;
+    } else {
+      actionHtml = `<button class="find-btn add-btn" onclick="handleAddFriend('${u.id}')"><i class="ti ti-user-plus"></i>Kết bạn</button>`;
+    }
+    div.innerHTML = `
+      <div class="find-avatar">${u.avatar}<span class="conv-dot ${u.status === 'online' ? 'online' : 'offline'}"></span></div>
+      <div class="find-info">
+        <div class="find-name">${u.name}</div>
+        <div class="find-phone"><i class="ti ti-phone"></i>${u.phone}</div>
+      </div>
+      <div class="find-actions">${actionHtml}</div>
+    `;
+    window['_findUser_' + u.id] = u;
+    return div;
+  }
+
+  function createConvItem(convId, name, avatar, lastMsg, lastTime, type, target = null) {
+    const div = document.createElement('div');
+    div.className = 'conv-item' + (convId === APP.activeConvId ? ' active' : '');
+    div.dataset.id = convId;
+    const timeStr = lastTime ? formatTime(lastTime) : '';
+    const truncated = (lastMsg || '').length > 30 ? lastMsg.slice(0, 30) + '...' : lastMsg;
+    const isOnline = target?.status === 'online';
+    div.innerHTML = `
+      <div class="conv-avatar">${avatar}<span class="conv-dot ${isOnline && type !== 'group' ? 'online' : type !== 'group' ? 'offline' : 'online'}"></span></div>
+      <div class="conv-info">
+        <div class="conv-name">${name}</div>
+        <div class="conv-last">${escapeHtml(truncated)}</div>
+      </div>
+      <div class="conv-meta">
+        <span class="conv-time">${timeStr}</span>
+      </div>
+    `;
+    div.onclick = () => openConversation(convId, name, avatar, type, target);
+    return div;
+  }
+
+  // ===== OPEN CONVERSATION =====
+  function openConversation(convId, name, avatar, type, target) {
+    APP.activeConvId = convId;
+    APP.activeConvType = type;
+    APP.activeConvTarget = target;
+
+    document.getElementById('chatWelcome').classList.add('hidden');
+    document.getElementById('chatWindow').classList.remove('hidden');
+    document.getElementById('chatName').textContent = name;
+    document.getElementById('chatAvatar').textContent = avatar;
+
+    const isOnline = target?.status === 'online';
+    document.getElementById('chatStatus').textContent = type === 'group' 
+      ? (target?.members?.length || 0) + ' thành viên'
+      : isOnline ? 'Đang hoạt động' : 'Ngoại tuyến';
+
+    document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
+    const el = document.querySelector(`.conv-item[data-id="${convId}"]`);
+    if (el) el.classList.add('active');
+
+    renderMessages(convId);
+    document.getElementById('msgInput').focus();
+  }
+
+  // ===== MESSAGES =====
+  function renderMessages(convId) {
+    const area = document.getElementById('messagesArea');
+    area.innerHTML = '';
+    const msgs = loadMessages(convId);
+    if (msgs.length === 0) {
+      area.innerHTML = '<div class="no-msgs"><i class="ti ti-message-circle"></i><p>Hãy gửi tin nhắn đầu tiên!</p></div>';
+      return;
+    }
+    msgs.forEach(m => area.appendChild(createMsgEl(m)));
+    area.scrollTop = area.scrollHeight;
+  }
+
+  function createMsgEl(msg) {
+    const isMine = msg.senderId === APP.currentUser.id;
+    const div = document.createElement('div');
+    div.className = 'msg-row ' + (isMine ? 'mine' : 'theirs');
+    div.dataset.id = msg.id;
+
+    let content = '';
+    if (msg.type === 'text') content = `<div class="msg-bubble">${escapeHtml(msg.text)}</div>`;
+    else if (msg.type === 'sticker') content = `<div class="msg-sticker">${msg.text}</div>`;
+    else if (msg.type === 'image') content = `<div class="msg-bubble msg-img"><img src="${msg.text}" alt="ảnh" onclick="window.open('${msg.text}')" /></div>`;
+    else if (msg.type === 'file') content = `<div class="msg-bubble msg-file"><i class="ti ti-file"></i><a href="${msg.text}" target="_blank">${msg.fileName || 'File'}</a></div>`;
+    else if (msg.type === 'voice') content = `<div class="msg-bubble msg-voice"><i class="ti ti-microphone"></i><audio controls src="${msg.text}"></audio></div>`;
+    else if (msg.type === 'call') content = `<div class="msg-bubble msg-call"><i class="ti ti-${msg.callType === 'video' ? 'video' : 'phone'}"></i> ${msg.text}</div>`;
+
+    const timeStr = formatTime(msg.time);
+    const users = loadUsers();
+    const sender = users.find(u => u.id === msg.senderId);
+
+    div.innerHTML = `
+      ${!isMine ? `<div class="msg-avatar">${sender?.avatar || '?'}</div>` : ''}
+      <div class="msg-content">
+        ${!isMine && APP.activeConvType === 'group' ? `<div class="msg-sender-name">${sender?.name || ''}</div>` : ''}
+        ${content}
+        <div class="msg-meta">
+          <span class="msg-time">${timeStr}</span>
+          ${isMine ? '<span class="msg-seen"><i class="ti ti-check"></i></span>' : ''}
+        </div>
+      </div>
+    `;
+    return div;
+  }
+
+  function sendMessage(type, text, extra = {}) {
+    if (!APP.activeConvId) return;
+    const msg = { id: 'm_' + Date.now(), senderId: APP.currentUser.id, type, text, time: Date.now(), ...extra };
+    saveMessage(APP.activeConvId, msg);
+
+    if (APP.activeConvType === 'group') {
+      const groups = loadGroups();
+      const g = groups.find(g => g.id === APP.activeConvId);
+      if (g) {
+        g.lastMsg = type === 'sticker' ? '(Sticker)' : type === 'image' ? '(Ảnh)' : type === 'voice' ? '(Tin nhắn thoại)' : text;
+        g.lastTime = Date.now();
+        saveGroups(groups);
+      }
+    }
+
+    const area = document.getElementById('messagesArea');
+    const noMsg = area.querySelector('.no-msgs');
+    if (noMsg) noMsg.remove();
+    area.appendChild(createMsgEl(msg));
+    area.scrollTop = area.scrollHeight;
+    renderConvList();
+  }
+
+  document.getElementById('sendBtn').onclick = doSend;
+  document.getElementById('msgInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); }
+  });
+  document.getElementById('msgInput').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+
+  function doSend() {
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if (!text || !APP.activeConvId) return;
+    sendMessage('text', text);
+    input.value = '';
+    input.style.height = 'auto';
+  }
+
+  document.getElementById('imageBtn').onclick = () => document.getElementById('imageInput').click();
+  document.getElementById('imageInput').onchange = function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => sendMessage('image', e.target.result);
+    reader.readAsDataURL(file);
+    this.value = '';
+  };
+
+  document.getElementById('fileBtn').onclick = () => document.getElementById('fileInput').click();
+  document.getElementById('fileInput').onchange = function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => sendMessage('file', e.target.result, { fileName: file.name });
+    reader.readAsDataURL(file);
+    this.value = '';
+  };
+
+  // ===== STICKERS =====
+  const STICKERS = {
+    emoji: ['😀','😂','🥹','😍','🥰','😎','🤩','😴','😭','😡','😱','🤔','😏','🥳','🤗','😇','🤓','😬','🫡','🫶'],
+    animals: ['🐱','🐶','🐼','🦊','🐨','🦁','🐯','🐸','🐙','🦋','🦄','🐬','🦅','🦜','🐝','🦊','🐻','🦝','🦔','🦦'],
+    food: ['🍜','🍣','🍕','🍔','🌮','🍩','🎂','🧋','🍓','🥗','🍱','🍛','☕','🍺','🍰','🍦','🌯','🥤','🍿','🥐'],
+    study: ['📚','📝','💻','🔬','📐','📊','🎓','🏆','💡','📖','✏️','🖊️','📌','🗒️','📎','⏰','🔭','🧮','📡','🗺️'],
+    feelings: ['❤️','🧡','💛','💚','💙','💜','🖤','💔','💕','💞','💝','🔥','✨','💯','🎉','🌈','⚡','🌟','🎊','💫'],
+  };
+
+  const stickerPicker = document.getElementById('stickerPicker');
+  const stickerGrid = document.getElementById('stickerGrid');
+
+  document.getElementById('stickerBtn').onclick = (e) => {
+    e.stopPropagation();
+    stickerPicker.classList.toggle('hidden');
+    renderStickers('emoji');
+  };
+  document.getElementById('closeStickerBtn').onclick = () => stickerPicker.classList.add('hidden');
+  document.addEventListener('click', e => {
+    if (!stickerPicker.contains(e.target) && e.target !== document.getElementById('stickerBtn')) {
+      stickerPicker.classList.add('hidden');
+    }
+  });
+
+  document.querySelectorAll('.stk-tab').forEach(tab => {
+    tab.onclick = function() {
+      document.querySelectorAll('.stk-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      renderStickers(this.dataset.cat);
+    };
+  });
+
+  function renderStickers(cat) {
+    stickerGrid.innerHTML = '';
+    STICKERS[cat].forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'sticker-item';
+      btn.textContent = s;
+      btn.onclick = () => { sendMessage('sticker', s); stickerPicker.classList.add('hidden'); };
+      stickerGrid.appendChild(btn);
+    });
+  }
+
+  // ===== VOICE MESSAGE =====
+  let mediaRecorder = null;
+  let audioChunks = [];
+  let isRecording = false;
+  const voiceMsgBtn = document.getElementById('voiceMsgBtn');
+
+  voiceMsgBtn.onclick = async () => {
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          reader.onload = e => sendMessage('voice', e.target.result);
+          reader.readAsDataURL(blob);
+          stream.getTracks().forEach(t => t.stop());
+        };
+        mediaRecorder.start();
+        isRecording = true;
+        voiceMsgBtn.classList.add('recording');
+        voiceMsgBtn.innerHTML = '<i class="ti ti-square"></i>';
+        showToast('🎙️ Đang ghi âm... Nhấn lại để dừng', 'info');
+      } catch(e) { showToast('Không thể truy cập microphone', 'error'); }
+    } else {
+      mediaRecorder.stop();
+      isRecording = false;
+      voiceMsgBtn.classList.remove('recording');
+      voiceMsgBtn.innerHTML = '<i class="ti ti-microphone"></i>';
+    }
+  };
+
+  // ===== SIDEBAR TABS =====
+  document.querySelectorAll('.s-tab').forEach(tab => {
+    tab.onclick = function() {
+      document.querySelectorAll('.s-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      renderConvList(document.getElementById('searchInput').value);
+    };
+  });
+
+  document.getElementById('searchInput').oninput = function() { renderConvList(this.value); };
+
+  // ===== NEW GROUP =====
+  document.getElementById('newGroupBtn').onclick = () => {
+    const modal = document.getElementById('newGroupModal');
+    modal.classList.remove('hidden');
+    const membersList = document.getElementById('membersList');
+    membersList.innerHTML = '';
+    const users = loadUsers().filter(u => u.id !== APP.currentUser.id);
+    users.forEach(u => {
+      const label = document.createElement('label');
+      label.className = 'member-item';
+      label.innerHTML = `<input type="checkbox" value="${u.id}" /><span>${u.avatar}</span><span>${u.name}</span>`;
+      membersList.appendChild(label);
+    });
+  };
+
+  document.getElementById('closeGroupModal').onclick = () => document.getElementById('newGroupModal').classList.add('hidden');
+
+  document.getElementById('createGroupBtn').onclick = () => {
+    const name = document.getElementById('groupNameInput').value.trim();
+    if (!name) { showToast('Nhập tên nhóm!', 'error'); return; }
+    const selected = [...document.querySelectorAll('#membersList input:checked')].map(i => i.value);
+    if (selected.length < 1) { showToast('Chọn ít nhất 1 thành viên!', 'error'); return; }
+    const groups = loadGroups();
+    const newGroup = { id: 'g_' + Date.now(), name, members: [APP.currentUser.id, ...selected], createdBy: APP.currentUser.id, createdAt: Date.now(), lastMsg: '', lastTime: 0 };
+    groups.push(newGroup);
+    saveGroups(groups);
+    document.getElementById('newGroupModal').classList.add('hidden');
+    document.getElementById('groupNameInput').value = '';
+    showToast('Tạo nhóm thành công!', 'success');
+    renderConvList();
+  };
+
+  // ===== VIDEO / VOICE CALL (NHÓM + 1:1) =====
+  let peer = null;
+  let activeCalls = {}; // Chứa nhiều phiên kết nối (Group call)
+  let localStream = null;
+
+  async function initPeer() {
+    if (peer && !peer.destroyed) return peer;
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js';
+      script.onload = () => {
+        const peerId = 'cntt1808_' + APP.currentUser.id + '_' + Date.now();
+        peer = new Peer(peerId, { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+        peer.on('open', () => { APP.myPeerId = peerId; resolve(peer); });
+        peer.on('call', handleIncomingCall);
+        peer.on('error', () => resolve(peer));
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  async function startCall(isVideo) {
+    if (!APP.activeConvTarget) return;
+    const isGroup = APP.activeConvType === 'group';
+
+    try { localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true }); } 
+    catch(e) { showToast('Không thể truy cập ' + (isVideo ? 'camera/mic' : 'mic'), 'error'); return; }
+
+    await initPeer();
+    
+    // Đồng bộ ID peer hiện tại
+    const peerMap = JSON.parse(localStorage.getItem('cntt1808_peers') || '{}');
+    peerMap[APP.currentUser.id] = APP.myPeerId;
+    localStorage.setItem('cntt1808_peers', JSON.stringify(peerMap));
+
+    showCallModal(APP.activeConvTarget.name, APP.activeConvTarget.avatar || '👥', isVideo);
+    document.getElementById('localVideo').srcObject = localStream;
+    document.getElementById('videoGrid').innerHTML = ''; // Làm sạch lưới video cũ
+    activeCalls = {}; // Reset list cuộc gọi
+
+    if (!isGroup) {
+      // Logic gọi 1-1
+      const targetId = APP.activeConvTarget.id;
+      const targetPeerId = peerMap[targetId];
+      if (!targetPeerId) {
+        showToast(`${APP.activeConvTarget.name} chưa online để nhận cuộc gọi`, 'info');
+        endCall(); return;
+      }
+      makeCall(targetPeerId, localStream);
+      sendMessage('call', `📞 Cuộc gọi ${isVideo ? 'video' : 'thoại'} đã kết thúc`, { callType: isVideo ? 'video' : 'voice' });
+    } else {
+      // Logic gọi Nhóm (gọi tất cả thành viên trong nhóm)
+      const members = APP.activeConvTarget.members.filter(id => id !== APP.currentUser.id);
+      let calledAny = false;
+      
+      members.forEach(uid => {
+        const targetPeerId = peerMap[uid];
+        if (targetPeerId) {
+          makeCall(targetPeerId, localStream);
+          calledAny = true;
+        }
+      });
+      
+      if (!calledAny) {
+        showToast('Không có thành viên nào online để nhận cuộc gọi', 'info');
+        endCall(); return;
+      }
+      sendMessage('call', `📞 Đã bắt đầu cuộc gọi nhóm ${isVideo ? 'video' : 'thoại'}`, { callType: isVideo ? 'video' : 'voice' });
+    }
+  }
+
+  function makeCall(targetPeerId, stream) {
+    const call = peer.call(targetPeerId, stream);
+    activeCalls[targetPeerId] = call;
+    call.on('stream', remoteStream => {
+      addVideoStream(remoteStream, targetPeerId);
+      document.getElementById('callStatus').textContent = 'Đang kết nối...';
+    });
+    call.on('close', () => removeVideoStream(targetPeerId));
+    call.on('error', () => removeVideoStream(targetPeerId));
+  }
+
+  // Thêm luồng video vào Grid (dành cho Gọi nhóm)
+  function addVideoStream(stream, peerId) {
+    let video = document.getElementById('vid_' + peerId);
+    if (!video) {
+      video = document.createElement('video');
+      video.id = 'vid_' + peerId;
+      video.autoplay = true;
+      video.playsInline = true;
+      document.getElementById('videoGrid').appendChild(video);
+    }
+    video.srcObject = stream;
+  }
+
+  function removeVideoStream(peerId) {
+    const video = document.getElementById('vid_' + peerId);
+    if (video) video.remove();
+    if (activeCalls[peerId]) {
+      activeCalls[peerId].close();
+      delete activeCalls[peerId];
+    }
+  }
+
+  function handleIncomingCall(call) {
+    APP.pendingCall = call;
+    const peerMap = JSON.parse(localStorage.getItem('cntt1808_peers') || '{}');
+    const callerEntry = Object.entries(peerMap).find(([uid, pid]) => pid === call.peer);
+    const callerUid = callerEntry ? callerEntry[0] : null;
+    const users = loadUsers();
+    const caller = users.find(u => u.id === callerUid);
+    showIncomingCall(caller?.name || 'Ai đó', caller?.avatar || '👤');
+  }
+
+  function showCallModal(name, avatar, isVideo) {
+    const m = document.getElementById('callModal');
+    document.getElementById('callName').textContent = name;
+    document.getElementById('callAvatar').textContent = avatar;
+    document.getElementById('callStatus').textContent = isVideo ? 'Cuộc gọi video...' : 'Cuộc gọi thoại...';
+    m.classList.remove('hidden');
+    if (!isVideo) m.classList.add('voice-only');
+    else m.classList.remove('voice-only');
+  }
+
+  function showIncomingCall(name, avatar) {
+    document.getElementById('incomingName').textContent = name;
+    document.getElementById('incomingAvatar').textContent = avatar;
+    document.getElementById('incomingCall').classList.remove('hidden');
+  }
+
+  function endCall() {
+    // Ngắt toàn bộ luồng gọi
+    Object.values(activeCalls).forEach(call => call.close());
+    activeCalls = {};
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    
+    document.getElementById('callModal').classList.add('hidden');
+    document.getElementById('videoGrid').innerHTML = ''; // Làm sạch lưới
+    document.getElementById('localVideo').srcObject = null;
+  }
+
+  document.getElementById('videoCallBtn').onclick = () => startCall(true);
+  document.getElementById('voiceCallBtn').onclick = () => startCall(false);
+  document.getElementById('endCallBtn').onclick = endCall;
+
+  document.getElementById('acceptCallBtn').onclick = async () => {
+    document.getElementById('incomingCall').classList.add('hidden');
+    const call = APP.pendingCall;
+    if (!call) return;
+
+    try { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); } 
+    catch(e) { localStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+
+    document.getElementById('videoGrid').innerHTML = '';
+    activeCalls = {};
+
+    call.answer(localStream);
+    activeCalls[call.peer] = call;
+    call.on('stream', remoteStream => addVideoStream(remoteStream, call.peer));
+    call.on('close', () => removeVideoStream(call.peer));
+    
+    showCallModal('Cuộc gọi đến', '📞', true);
+    document.getElementById('localVideo').srcObject = localStream;
+  };
+
+  document.getElementById('rejectCallBtn').onclick = () => {
+    document.getElementById('incomingCall').classList.add('hidden');
+    if (APP.pendingCall) APP.pendingCall.close();
+  };
+
+  document.getElementById('toggleMicBtn').onclick = function() {
+    if (!localStream) return;
+    const audioTracks = localStream.getAudioTracks();
+    audioTracks.forEach(t => t.enabled = !t.enabled);
+    const on = audioTracks[0]?.enabled;
+    this.innerHTML = `<i class="ti ti-microphone${on ? '' : '-off'}"></i>`;
+    this.classList.toggle('muted', !on);
+  };
+
+  document.getElementById('toggleCamBtn').onclick = function() {
+    if (!localStream) return;
+    const videoTracks = localStream.getVideoTracks();
+    videoTracks.forEach(t => t.enabled = !t.enabled);
+    const on = videoTracks[0]?.enabled;
+    this.innerHTML = `<i class="ti ti-video${on ? '' : '-off'}"></i>`;
+    this.classList.toggle('muted', !on);
+  };
+
+  document.getElementById('toggleScreenBtn').onclick = async function() {
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const screenTrack = screenStream.getVideoTracks()[0];
+      
+      // Áp dụng chia sẻ màn hình cho tất cả cuộc gọi hiện tại
+      Object.values(activeCalls).forEach(call => {
+        if (call.peerConnection) {
+          const sender = call.peerConnection.getSenders().find(s => s.track?.kind === 'video');
+          if (sender) sender.replaceTrack(screenTrack);
+        }
+      });
+      
+      document.getElementById('localVideo').srcObject = screenStream;
+      screenTrack.onended = () => { showToast('Đã dừng chia sẻ màn hình', 'info'); };
+      showToast('Đang chia sẻ màn hình', 'success');
+    } catch(e) { showToast('Không thể chia sẻ màn hình', 'error'); }
+  };
+
+  // ===== MORE PANEL =====
+  document.getElementById('moreBtn').onclick = () => {
+    const panel = document.getElementById('rightPanel');
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden') && APP.activeConvTarget) { renderPanel(); }
+  };
+  document.getElementById('closePanelBtn').onclick = () => document.getElementById('rightPanel').classList.add('hidden');
+
+  function renderPanel() {
+    const t = APP.activeConvTarget;
+    const body = document.getElementById('panelBody');
+    if (APP.activeConvType === 'dm') {
+      const friendStatus = isFriend(t.id);
+      const sentReq = hasPendingRequestTo(t.id);
+      const incomingReq = hasPendingRequestFrom(t.id);
+      let friendBtnHtml = '';
+      if (friendStatus) {
+        friendBtnHtml = `<button class="panel-btn danger-btn" onclick="openUnfriendModal({id:'${t.id}',name:'${t.name}'})"><i class="ti ti-user-minus"></i>Xóa bạn</button>`;
+      } else if (sentReq) {
+        friendBtnHtml = `<button class="panel-btn" disabled style="opacity:0.6;cursor:default"><i class="ti ti-clock"></i>Đã gửi lời mời</button>`;
+      } else if (incomingReq) {
+        friendBtnHtml = `<button class="panel-btn" onclick="handleAccept('${t.id}');renderPanel()"><i class="ti ti-user-check"></i>Chấp nhận kết bạn</button>`;
+      } else {
+        friendBtnHtml = `<button class="panel-btn" onclick="handleAddFriend('${t.id}');renderPanel()"><i class="ti ti-user-plus"></i>Kết bạn</button>`;
+      }
+      body.innerHTML = `
+        <div class="panel-profile">
+          <div class="panel-avatar">${t.avatar}</div>
+          <div class="panel-name">${t.name}</div>
+          <div class="panel-status ${t.status}">${t.status === 'online' ? '🟢 Đang hoạt động' : '⚫ Ngoại tuyến'}</div>
+          <div class="panel-phone"><i class="ti ti-phone"></i> ${t.phone}</div>
+        </div>
+        <div class="panel-actions">
+          <button class="panel-btn" onclick="startCall(false)"><i class="ti ti-phone"></i>Gọi thoại</button>
+          <button class="panel-btn" onclick="startCall(true)"><i class="ti ti-video"></i>Video call</button>
+          ${friendBtnHtml}
+        </div>
+        <div class="panel-media">
+          <div class="panel-section-title">Ảnh & File</div>
+          <div class="panel-media-grid" id="panelMediaGrid"></div>
+        </div>
+      `;
+      const msgs = loadMessages(APP.activeConvId);
+      const grid = document.getElementById('panelMediaGrid');
+      msgs.filter(m => m.type === 'image').forEach(m => {
+        const img = document.createElement('img');
+        img.src = m.text; img.onclick = () => window.open(m.text);
+        grid.appendChild(img);
+      });
+      if (!grid.children.length) grid.innerHTML = '<p style="color:var(--muted);font-size:13px;">Chưa có ảnh</p>';
+    } else {
+      const groups = loadGroups();
+      const g = groups.find(g => g.id === APP.activeConvId);
+      const users = loadUsers();
+      body.innerHTML = `
+        <div class="panel-profile">
+          <div class="panel-avatar">👥</div>
+          <div class="panel-name">${g?.name}</div>
+          <div class="panel-phone">${g?.members.length} thành viên</div>
+        </div>
+        <div class="panel-actions">
+          <button class="panel-btn" onclick="startCall(false)"><i class="ti ti-phone"></i>Gọi nhóm</button>
+          <button class="panel-btn" onclick="startCall(true)"><i class="ti ti-video"></i>Video nhóm</button>
+        </div>
+        <div class="panel-section-title" style="padding:12px 16px 8px;">Thành viên</div>
+        <div id="groupMembersList"></div>
+      `;
+      const ml = document.getElementById('groupMembersList');
+      g?.members.forEach(uid => {
+        const u = users.find(u => u.id === uid);
+        if (!u) return;
+        const div = document.createElement('div');
+        div.className = 'member-row';
+        div.innerHTML = `<span>${u.avatar}</span><span>${u.name}</span>${uid === g.createdBy ? '<span class="badge">Trưởng nhóm</span>' : ''}`;
+        ml.appendChild(div);
+      });
+    }
+  }
+
+  document.getElementById('backBtn').onclick = () => {
+    document.getElementById('chatWindow').classList.add('hidden');
+    document.getElementById('chatWelcome').classList.remove('hidden');
+    APP.activeConvId = null;
+  };
+
+  // ===== BROADCAST LISTENER =====
+  function setupBroadcastListener() {
+    bc.addEventListener('message', e => {
+      if (e.data.type === 'new_message') {
+        if (e.data.convId === APP.activeConvId) {
+          const area = document.getElementById('messagesArea');
+          const noMsg = area.querySelector('.no-msgs');
+          if (noMsg) noMsg.remove();
+          area.appendChild(createMsgEl(e.data.msg));
+          area.scrollTop = area.scrollHeight;
+        }
+        renderConvList(document.getElementById('searchInput').value);
+      }
+      if (e.data.type === 'friend_update') {
+        renderConvList(document.getElementById('searchInput').value);
+        updateFindBadge();
+      }
+    });
+  }
+
+  // ===== UTILS =====
+  function escapeHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function formatTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const diff = new Date() - d;
+    if (diff < 60000) return 'Vừa xong';
+    if (diff < 3600000) return Math.floor(diff/60000) + ' phút';
+    if (diff < 86400000) return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+    return d.getDate() + '/' + (d.getMonth()+1);
+  }
+
+  window.startCall = startCall;
+</script>
+</body>
+</html>
