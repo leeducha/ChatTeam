@@ -416,6 +416,7 @@
 <div class="call-modal hidden" id="callModal">
   <div class="call-container">
     <div id="videoGrid" class="video-grid"></div>
+    <video id="remoteVideo" autoplay playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#1a1a2e;"></video>
     <video id="localVideo" autoplay playsinline muted></video>
     <div class="call-overlay">
       <div class="call-info">
@@ -539,6 +540,33 @@
 </div>
 
 <audio id="storyLocalAudio" loop style="display:none;"></audio>
+
+<!-- ===== DELETE POST CONFIRM MODAL ===== -->
+<div class="modal-overlay hidden" id="deletePostModal">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-header" style="border-bottom:2px solid #ffeaea;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;background:#ffeaea;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">
+          <i class="ti ti-trash" style="color:#e53935;"></i>
+        </div>
+        <h3>Xóa bài viết</h3>
+      </div>
+      <button class="icon-btn" id="closeDeletePostModal"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body" style="padding:20px;">
+      <div style="background:#fff8f8;border:1px solid #ffcdd2;border-radius:12px;padding:14px;text-align:center;">
+        <p style="font-size:14px;color:#6b7280;line-height:1.7;margin:0;">
+          ⚠️ Bạn có chắc muốn <strong style="color:#e53935;">xóa bài viết này</strong>?<br>
+          <span style="font-size:12px;">Hành động này không thể hoàn tác.</span>
+        </p>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px;">
+      <button class="panel-btn" id="cancelDeletePostBtn" style="flex:1;justify-content:center;"><i class="ti ti-arrow-left"></i>Hủy bỏ</button>
+      <button class="main-btn" id="confirmDeletePostBtn" style="background:#e53935;flex:1;gap:8px;"><i class="ti ti-trash"></i>Xác nhận xóa</button>
+    </div>
+  </div>
+</div>
 
 <script type="module">
   // ================================================================
@@ -752,6 +780,40 @@
     async saveStory(story) {
       const newRef = push(ref(db, 'stories'));
       await set(newRef, story);
+    },
+
+    // ── POST DELETE ──────────────────────────────────────────
+    async deletePost(postId) {
+      await remove(ref(db, 'posts/' + postId));
+    },
+
+    // ── CALL SIGNALING ───────────────────────────────────────
+    async createCall(callData) {
+      const newRef = push(ref(db, 'calls'));
+      await set(newRef, callData);
+      return newRef.key;
+    },
+    async updateCall(callId, data) {
+      await update(ref(db, 'calls/' + callId), data);
+    },
+    async getCall(callId) {
+      const snap = await get(ref(db, 'calls/' + callId));
+      return snap.exists() ? snap.val() : null;
+    },
+    listenCall(callId, cb) {
+      return onValue(ref(db, 'calls/' + callId), snap => cb(snap.val()));
+    },
+    listenCalls(myId, cb) {
+      return onValue(ref(db, 'calls'), snap => {
+        if (!snap.exists()) return;
+        snap.forEach(child => cb(child.key, child.val()));
+      });
+    },
+    async pushIceCandidate(callId, role, candidate) {
+      await push(ref(db, `calls/${callId}/candidates/${role}`), candidate);
+    },
+    listenIceCandidates(callId, role, cb) {
+      return onChildAdded(ref(db, `calls/${callId}/candidates/${role}`), snap => cb(snap.val()));
     }
   };
 
@@ -947,6 +1009,7 @@
 
     DB.listenPosts(posts => { renderPostsTrack(posts); });
     DB.listenStories(stories => { renderStoriesTrack(stories); });
+    listenIncomingCalls();
   }
 
   document.getElementById('logoutBtn').onclick = () => {
@@ -1170,13 +1233,22 @@
         </div>
       ` : '';
 
+      const isAuthor = p.userId === APP.currentUser?.id;
+      const deleteBtn = isAuthor ? `
+        <button class="interact-btn" id="del_${p.id}" style="flex:none; color:#e53935;" title="Xóa bài viết">
+          <i class="ti ti-trash"></i>
+        </button>` : '';
+
       card.innerHTML = `
         <div class="post-user-info">
-          <div class="avatar">${p.userAvatar || '🧑‍💻'}</div>
-          <div>
-            <div class="post-author">${p.userName}</div>
-            <div class="post-time">${formatTime(p.time)}</div>
+          <div style="display:flex;align-items:center;gap:12px;flex:1;">
+            <div class="avatar">${p.userAvatar || '🧑‍💻'}</div>
+            <div>
+              <div class="post-author">${p.userName}</div>
+              <div class="post-time">${formatTime(p.time)}</div>
+            </div>
           </div>
+          ${isAuthor ? `<button class="interact-btn post-delete-btn" data-pid="${p.id}" style="flex:none; padding:6px 10px; color:#e53935; border-radius:10px;" title="Xóa bài viết"><i class="ti ti-trash"></i></button>` : ''}
         </div>
         <div class="post-text-content" style="margin-top:10px;">${escapeHtml(p.text)}</div>
         ${imgHtml}
@@ -1193,9 +1265,40 @@
         await DB.updatePost(p.id, { likes: currentLikes + 1 });
       };
 
+      if (isAuthor) {
+        const btnDel = card.querySelector(`.post-delete-btn[data-pid="${p.id}"]`);
+        btnDel.onclick = () => openDeletePostModal(p.id);
+      }
+
       container.appendChild(card);
     });
   }
+
+  // ── DELETE POST MODAL ────────────────────────────────────────────
+  let _deletePostTargetId = null;
+  function openDeletePostModal(postId) {
+    _deletePostTargetId = postId;
+    document.getElementById('deletePostModal').classList.remove('hidden');
+  }
+  document.getElementById('closeDeletePostModal').onclick = () => {
+    document.getElementById('deletePostModal').classList.add('hidden');
+    _deletePostTargetId = null;
+  };
+  document.getElementById('cancelDeletePostBtn').onclick = () => {
+    document.getElementById('deletePostModal').classList.add('hidden');
+    _deletePostTargetId = null;
+  };
+  document.getElementById('confirmDeletePostBtn').onclick = async () => {
+    if (!_deletePostTargetId) return;
+    try {
+      await DB.deletePost(_deletePostTargetId);
+      showToast('Đã xóa bài viết thành công!', 'success');
+    } catch(e) {
+      showToast('Lỗi xóa bài viết!', 'error');
+    }
+    document.getElementById('deletePostModal').classList.add('hidden');
+    _deletePostTargetId = null;
+  };
 
   // ================================================================
   // SỬA ĐỔI 3: HỆ THỐNG TẠO NHÓM CHAT MỚI (FIXED)
@@ -1670,6 +1773,349 @@
     document.getElementById('chatWelcome').classList.remove('hidden');
     APP.activeConvId = null;
   };
+
+  // ================================================================
+  // HỆ THỐNG GỌI AUDIO/VIDEO (WebRTC + Firebase Signaling)
+  // ================================================================
+  const ICE_CONFIG = { iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ]};
+
+  let _localStream   = null;   // MediaStream cục bộ
+  let _peerConn      = null;   // RTCPeerConnection
+  let _callTimerInt  = null;   // setInterval đếm giây
+  let _callSecs      = 0;      // Số giây đã gọi
+  let _callData      = null;   // { callId, call, role }
+  let _micMuted      = false;
+  let _camOff        = false;
+  let _screenStream  = null;
+  let _iceCandidateQ = [];     // Hàng đợi ICE khi remoteDesc chưa set
+
+  // ── Nút gọi từ header chat ────────────────────────────────
+  document.getElementById('voiceCallBtn').onclick = () => initiateCall('voice');
+  document.getElementById('videoCallBtn').onclick  = () => initiateCall('video');
+
+  async function initiateCall(type) {
+    if (APP.activeConvType !== 'dm' || !APP.activeConvTarget?.id) {
+      showToast('Chỉ có thể gọi trong cuộc trò chuyện 1-1!', 'error');
+      return;
+    }
+    if (_callData) { showToast('Bạn đang trong cuộc gọi khác!', 'error'); return; }
+
+    const toUser = APP.activeConvTarget;
+    showCallModal(type, toUser.avatar, toUser.name, 'Đang đổ chuông...', type === 'voice');
+
+    let localOk = await startLocalMedia(type);
+    if (!localOk) { hideCallModal(); return; }
+
+    // Tạo peer connection + offer ngay
+    _peerConn = createPeer();
+    _localStream.getTracks().forEach(t => _peerConn.addTrack(t, _localStream));
+
+    const offer = await _peerConn.createOffer();
+    await _peerConn.setLocalDescription(offer);
+
+    // Đẩy call lên Firebase
+    const callId = await DB.createCall({
+      fromId: APP.currentUser.id,
+      toId:   toUser.id,
+      type,
+      status: 'ringing',
+      offer:  { type: offer.type, sdp: offer.sdp },
+      time:   Date.now()
+    });
+
+    _callData = { callId, call: { fromId: APP.currentUser.id, toId: toUser.id, type }, role: 'caller' };
+
+    // ICE candidates → Firebase
+    _peerConn.onicecandidate = e => {
+      if (e.candidate) DB.pushIceCandidate(callId, 'caller', e.candidate.toJSON());
+    };
+
+    // Nghe trả lời từ callee
+    DB.listenCall(callId, async data => {
+      if (!data || !_peerConn) return;
+
+      if (data.status === 'rejected') {
+        showToast('Cuộc gọi bị từ chối.', 'info');
+        await _cleanupCall(false); return;
+      }
+      if (data.status === 'ended' && _callData) {
+        await _cleanupCall(true); return;
+      }
+      if (data.answer && _peerConn.signalingState !== 'stable' && _peerConn.remoteDescription === null) {
+        try {
+          await _peerConn.setRemoteDescription(new RTCSessionDescription(data.answer));
+          await _flushIceCandidates();
+          _onConnected(callId);
+        } catch(e) { console.warn('setRemoteDescription error', e); }
+      }
+    });
+
+    // Nghe ICE candidates từ callee
+    DB.listenIceCandidates(callId, 'callee', async c => {
+      if (!_peerConn) return;
+      if (_peerConn.remoteDescription) {
+        try { await _peerConn.addIceCandidate(new RTCIceCandidate(c)); } catch(e) {}
+      } else {
+        _iceCandidateQ.push(c);
+      }
+    });
+  }
+
+  // ── Lắng nghe cuộc gọi đến ───────────────────────────────
+  let _listenedCallIds = new Set();
+  function listenIncomingCalls() {
+    onValue(ref(db, 'calls'), snap => {
+      if (!snap.exists() || !APP.currentUser) return;
+      snap.forEach(child => {
+        const callId = child.key;
+        const call   = child.val();
+        if (call.toId !== APP.currentUser.id) return;
+        if (call.status !== 'ringing') return;
+        if (_listenedCallIds.has(callId)) return;
+        _listenedCallIds.add(callId);
+        _showIncomingCall(callId, call);
+      });
+    });
+  }
+
+  function _showIncomingCall(callId, call) {
+    const caller = _allUsers.find(u => u.id === call.fromId);
+    document.getElementById('incomingAvatar').textContent = caller?.avatar || '?';
+    document.getElementById('incomingName').textContent   = caller?.name   || 'Không rõ';
+    document.getElementById('incomingType').textContent   = call.type === 'video' ? '📹 Cuộc gọi video' : '📞 Cuộc gọi thoại';
+    document.getElementById('incomingCall').classList.remove('hidden');
+
+    // Tự động hủy sau 60s nếu không ai bắt máy
+    const autoReject = setTimeout(() => {
+      if (!document.getElementById('incomingCall').classList.contains('hidden')) {
+        document.getElementById('incomingCall').classList.add('hidden');
+      }
+    }, 60000);
+
+    document.getElementById('acceptCallBtn').onclick = async () => {
+      clearTimeout(autoReject);
+      document.getElementById('incomingCall').classList.add('hidden');
+      await _answerCall(callId, call);
+    };
+    document.getElementById('rejectCallBtn').onclick = async () => {
+      clearTimeout(autoReject);
+      document.getElementById('incomingCall').classList.add('hidden');
+      await DB.updateCall(callId, { status: 'rejected' });
+    };
+  }
+
+  async function _answerCall(callId, call) {
+    if (_callData) { showToast('Bạn đang trong cuộc gọi khác!', 'error'); return; }
+
+    const caller = _allUsers.find(u => u.id === call.fromId);
+    showCallModal(call.type, caller?.avatar || '?', caller?.name || '?', 'Đang kết nối...', call.type === 'voice');
+
+    const localOk = await startLocalMedia(call.type);
+    if (!localOk) { hideCallModal(); return; }
+
+    _callData = { callId, call, role: 'callee' };
+    _peerConn = createPeer();
+    _localStream.getTracks().forEach(t => _peerConn.addTrack(t, _localStream));
+
+    _peerConn.onicecandidate = e => {
+      if (e.candidate) DB.pushIceCandidate(callId, 'callee', e.candidate.toJSON());
+    };
+
+    // Lấy offer từ Firebase
+    const callSnap = await DB.getCall(callId);
+    if (!callSnap?.offer) { showToast('Không tìm thấy dữ liệu cuộc gọi!', 'error'); hideCallModal(); return; }
+
+    await _peerConn.setRemoteDescription(new RTCSessionDescription(callSnap.offer));
+    await _flushIceCandidates();
+
+    const answer = await _peerConn.createAnswer();
+    await _peerConn.setLocalDescription(answer);
+    await DB.updateCall(callId, { answer: { type: answer.type, sdp: answer.sdp }, status: 'connected' });
+    _onConnected(callId);
+
+    // Nghe ICE candidates từ caller
+    DB.listenIceCandidates(callId, 'caller', async c => {
+      if (!_peerConn) return;
+      try { await _peerConn.addIceCandidate(new RTCIceCandidate(c)); } catch(e) {}
+    });
+
+    // Nghe khi caller kết thúc
+    DB.listenCall(callId, async data => {
+      if (data?.status === 'ended' && _callData) await _cleanupCall(false);
+    });
+  }
+
+  // ── Tạo RTCPeerConnection ─────────────────────────────────
+  function createPeer() {
+    const pc = new RTCPeerConnection(ICE_CONFIG);
+    pc.ontrack = e => {
+      const remVid = document.getElementById('remoteVideo');
+      if (remVid && e.streams[0]) remVid.srcObject = e.streams[0];
+    };
+    pc.onconnectionstatechange = () => {
+      if (['disconnected','failed','closed'].includes(pc.connectionState)) {
+        _cleanupCall(true);
+      }
+    };
+    return pc;
+  }
+
+  async function startLocalMedia(type) {
+    try {
+      const constraints = type === 'video' ? { video: true, audio: true } : { audio: true, video: false };
+      _localStream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (type === 'video') document.getElementById('localVideo').srcObject = _localStream;
+      return true;
+    } catch(e) {
+      showToast('Không thể truy cập microphone/camera! Hãy cấp quyền trong trình duyệt.', 'error');
+      return false;
+    }
+  }
+
+  async function _flushIceCandidates() {
+    for (const c of _iceCandidateQ) {
+      try { await _peerConn?.addIceCandidate(new RTCIceCandidate(c)); } catch(e) {}
+    }
+    _iceCandidateQ = [];
+  }
+
+  function _onConnected(callId) {
+    document.getElementById('callStatus').textContent = 'Đang kết nối';
+    document.getElementById('callTimer').classList.remove('hidden');
+    _callSecs = 0;
+    _callTimerInt = setInterval(() => {
+      _callSecs++;
+      const m = String(Math.floor(_callSecs / 60)).padStart(2, '0');
+      const s = String(_callSecs % 60).padStart(2, '0');
+      document.getElementById('callTimerDisplay').textContent = `${m}:${s}`;
+      document.getElementById('callStatus').textContent = 'Đang gọi';
+    }, 1000);
+  }
+
+  // ── Kết thúc cuộc gọi ────────────────────────────────────
+  document.getElementById('endCallBtn').onclick = () => _cleanupCall(true, true);
+
+  async function _cleanupCall(saveMsg = false, byUser = false) {
+    if (_callTimerInt) { clearInterval(_callTimerInt); _callTimerInt = null; }
+
+    // Lưu tin nhắn lịch sử cuộc gọi
+    if (saveMsg && _callData && APP.activeConvId) {
+      const { call } = _callData;
+      const dur = _callSecs > 0
+        ? ` · ${String(Math.floor(_callSecs/60)).padStart(2,'0')}:${String(_callSecs%60).padStart(2,'0')}`
+        : ' · Không có người bắt máy';
+      const callText = (call.type === 'video' ? '📹 Cuộc gọi video' : '📞 Cuộc gọi thoại') + dur;
+      await sendMessage('call', callText, { callType: call.type });
+    }
+
+    // Đánh dấu cuộc gọi kết thúc trên Firebase
+    if (byUser && _callData?.callId) {
+      try { await DB.updateCall(_callData.callId, { status: 'ended' }); } catch(e) {}
+    }
+
+    // Dừng media streams
+    if (_screenStream) { _screenStream.getTracks().forEach(t => t.stop()); _screenStream = null; }
+    if (_localStream)  { _localStream.getTracks().forEach(t => t.stop());  _localStream  = null; }
+    if (_peerConn)     { _peerConn.close(); _peerConn = null; }
+
+    // Reset state
+    _callData   = null;
+    _callSecs   = 0;
+    _micMuted   = false;
+    _camOff     = false;
+    _iceCandidateQ = [];
+
+    // Reset UI nút
+    document.getElementById('toggleMicBtn').querySelector('i').className = 'ti ti-microphone';
+    document.getElementById('toggleMicBtn').classList.remove('muted');
+    document.getElementById('toggleCamBtn').querySelector('i').className = 'ti ti-video';
+    document.getElementById('toggleCamBtn').classList.remove('muted');
+    document.getElementById('toggleScreenBtn').querySelector('i').className = 'ti ti-screen-share';
+
+    hideCallModal();
+  }
+
+  // ── Các nút điều khiển trong cuộc gọi ───────────────────
+  document.getElementById('toggleMicBtn').onclick = () => {
+    if (!_localStream) return;
+    _micMuted = !_micMuted;
+    _localStream.getAudioTracks().forEach(t => { t.enabled = !_micMuted; });
+    const btn = document.getElementById('toggleMicBtn');
+    btn.querySelector('i').className = _micMuted ? 'ti ti-microphone-off' : 'ti ti-microphone';
+    btn.classList.toggle('muted', _micMuted);
+    showToast(_micMuted ? '🔇 Đã tắt micro' : '🎙️ Đã bật micro', 'info');
+  };
+
+  document.getElementById('toggleCamBtn').onclick = () => {
+    if (!_localStream) return;
+    _camOff = !_camOff;
+    _localStream.getVideoTracks().forEach(t => { t.enabled = !_camOff; });
+    const btn = document.getElementById('toggleCamBtn');
+    btn.querySelector('i').className = _camOff ? 'ti ti-video-off' : 'ti ti-video';
+    btn.classList.toggle('muted', _camOff);
+    showToast(_camOff ? '📵 Đã tắt camera' : '📷 Đã bật camera', 'info');
+  };
+
+  document.getElementById('toggleScreenBtn').onclick = async () => {
+    if (_screenStream) {
+      // Dừng chia sẻ màn hình, khôi phục camera
+      _screenStream.getTracks().forEach(t => t.stop());
+      _screenStream = null;
+      if (_localStream && _peerConn) {
+        const camTrack = _localStream.getVideoTracks()[0];
+        if (camTrack) {
+          const sender = _peerConn.getSenders().find(s => s.track?.kind === 'video');
+          if (sender) await sender.replaceTrack(camTrack);
+        }
+        document.getElementById('localVideo').srcObject = _localStream;
+      }
+      document.getElementById('toggleScreenBtn').querySelector('i').className = 'ti ti-screen-share';
+      showToast('Đã dừng chia sẻ màn hình.', 'info');
+      return;
+    }
+    try {
+      _screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const screenTrack = _screenStream.getVideoTracks()[0];
+      if (_peerConn) {
+        const sender = _peerConn.getSenders().find(s => s.track?.kind === 'video');
+        if (sender) await sender.replaceTrack(screenTrack);
+      }
+      document.getElementById('localVideo').srcObject = _screenStream;
+      document.getElementById('toggleScreenBtn').querySelector('i').className = 'ti ti-screen-share-off';
+      showToast('📺 Đang chia sẻ màn hình', 'success');
+      // Tự động dừng khi người dùng nhấn nút Stop của trình duyệt
+      screenTrack.onended = () => document.getElementById('toggleScreenBtn').click();
+    } catch(e) {
+      showToast('Không thể chia sẻ màn hình!', 'error');
+    }
+  };
+
+  // ── Helpers hiển thị/ẩn Call Modal ───────────────────────
+  function showCallModal(type, avatar, name, status, voiceOnly) {
+    document.getElementById('callAvatar').textContent = avatar;
+    document.getElementById('callName').textContent   = name;
+    document.getElementById('callStatus').textContent = status;
+    document.getElementById('callTimer').classList.add('hidden');
+    document.getElementById('callTimerDisplay').textContent = '00:00';
+    const modal = document.getElementById('callModal');
+    modal.classList.remove('hidden');
+    if (voiceOnly) modal.classList.add('voice-only');
+    else modal.classList.remove('voice-only');
+    // Ẩn remote video ban đầu
+    const remVid = document.getElementById('remoteVideo');
+    if (remVid) remVid.srcObject = null;
+  }
+  function hideCallModal() {
+    document.getElementById('callModal').classList.add('hidden');
+    document.getElementById('incomingCall').classList.add('hidden');
+    const locVid = document.getElementById('localVideo');
+    const remVid = document.getElementById('remoteVideo');
+    if (locVid) locVid.srcObject = null;
+    if (remVid) remVid.srcObject = null;
+  }
 
   boot();
 </script>
