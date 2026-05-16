@@ -135,6 +135,7 @@
       </div>
       <div class="sidebar-actions">
         <button class="icon-btn" id="newGroupBtn" title="Tạo nhóm"><i class="ti ti-users-plus"></i></button>
+        <button class="icon-btn" id="backupBtn" title="Quản lý & Sao lưu tài khoản"><i class="ti ti-database"></i></button>
         <button class="icon-btn" id="logoutBtn" title="Đăng xuất"><i class="ti ti-logout"></i></button>
       </div>
     </div>
@@ -235,6 +236,10 @@
         <div class="avatar call-avatar" id="callAvatar">?</div>
         <div class="call-name" id="callName">Tên</div>
         <div class="call-status" id="callStatus">Đang gọi...</div>
+        <div class="call-timer hidden" id="callTimer">
+          <span class="call-timer-dot"></span>
+          <span id="callTimerDisplay">00:00</span>
+        </div>
       </div>
       <div class="call-controls">
         <button class="call-btn" id="toggleMicBtn" title="Tắt/bật mic"><i class="ti ti-microphone"></i></button>
@@ -277,22 +282,77 @@
 </div>
 
 <div class="modal-overlay hidden" id="unfriendModal">
-  <div class="modal-box" style="max-width:360px;">
-    <div class="modal-header">
-      <h3>Xóa bạn bè</h3>
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-header" style="border-bottom:2px solid #ffeaea;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;background:#ffeaea;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;">
+          <i class="ti ti-user-minus" style="color:#e53935;"></i>
+        </div>
+        <h3>Xóa bạn bè</h3>
+      </div>
       <button class="icon-btn" id="closeUnfriendModal"><i class="ti ti-x"></i></button>
     </div>
-    <div class="modal-body">
-      <p style="font-size:14px;color:#6b7280;line-height:1.6;">Bạn có chắc muốn xóa <strong id="unfriendName"></strong> khỏi danh sách bạn bè? Lịch sử trò chuyện vẫn được giữ lại.</p>
+    <div class="modal-body" style="padding:20px;">
+      <div style="text-align:center;padding:10px 0 6px;">
+        <div id="unfriendAvatar" style="font-size:48px;margin-bottom:8px;">👤</div>
+        <div style="font-size:16px;font-weight:800;color:#172033;" id="unfriendName"></div>
+        <div style="font-size:13px;color:#9ca3af;margin-top:4px;" id="unfriendPhone"></div>
+      </div>
+      <div style="background:#fff8f8;border:1px solid #ffcdd2;border-radius:12px;padding:12px 14px;margin-top:14px;">
+        <p style="font-size:13px;color:#6b7280;line-height:1.7;margin:0;">
+          ⚠️ Bạn có chắc muốn <strong style="color:#e53935;">xóa kết bạn</strong> với người này?<br>
+          <span style="font-size:12px;">Lịch sử trò chuyện vẫn được giữ lại. Bạn có thể kết bạn lại sau.</span>
+        </p>
+      </div>
     </div>
     <div class="modal-footer" style="display:flex;gap:10px;">
-      <button class="panel-btn" id="cancelUnfriendBtn" style="flex:1;justify-content:center;">Hủy</button>
-      <button class="main-btn" id="confirmUnfriendBtn" style="background:#e53935;flex:1;"><i class="ti ti-user-minus"></i>Xóa bạn</button>
+      <button class="panel-btn" id="cancelUnfriendBtn" style="flex:1;justify-content:center;"><i class="ti ti-arrow-left"></i>Hủy bỏ</button>
+      <button class="main-btn" id="confirmUnfriendBtn" style="background:#e53935;flex:1;gap:8px;"><i class="ti ti-user-minus"></i>Xác nhận xóa bạn</button>
     </div>
   </div>
 </div>
 
 <div class="toast hidden" id="toast"></div>
+
+<!-- ===== BACKUP MODAL ===== -->
+<div class="modal-overlay hidden" id="backupModal">
+  <div class="modal-box backup-modal-box">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <i class="ti ti-database" style="font-size:20px;color:#0068ff;"></i>
+        <h3>Quản lý &amp; Sao lưu Tài khoản</h3>
+      </div>
+      <button class="icon-btn" id="closeBackupModal"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="backup-toolbar">
+      <div class="backup-count-wrap">
+        <span class="backup-live-dot"></span>
+        <span id="backupUserCount">0 tài khoản</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="find-btn accept-btn" id="exportJsonBtn"><i class="ti ti-download"></i>Xuất JSON</button>
+        <button class="find-btn add-btn" id="exportCsvBtn"><i class="ti ti-table-export"></i>Xuất CSV</button>
+      </div>
+    </div>
+    <div id="backupUserList" class="backup-user-list"></div>
+    <div class="backup-footer">
+      <i class="ti ti-refresh" style="font-size:14px;color:#9ca3af;"></i>
+      <span id="backupLastRefresh">Tự động cập nhật khi có người đăng ký mới</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== NEW USER NOTIFICATION ===== -->
+<div class="new-user-toast hidden" id="newUserToast">
+  <div class="new-user-toast-inner">
+    <div class="new-user-toast-icon"><i class="ti ti-user-plus"></i></div>
+    <div class="new-user-toast-text">
+      <div class="new-user-toast-title">🎉 Thành viên mới đã đăng ký!</div>
+      <div class="new-user-toast-name" id="newUserToastName">...</div>
+    </div>
+    <button class="new-user-toast-close" onclick="document.getElementById('newUserToast').classList.add('hidden')"><i class="ti ti-x"></i></button>
+  </div>
+</div>
 
 <script type="module">
   window.APP = {};
@@ -317,7 +377,48 @@
     return defaults;
   }
 
-  function saveUsers(users) { localStorage.setItem('cntt1808_users', JSON.stringify(users)); }
+  let _lastUserCount = null;
+
+  function saveUsers(users) {
+    localStorage.setItem('cntt1808_users', JSON.stringify(users));
+    // Phát hiện ngay khi có người đăng ký trong chính tab này
+    if (_lastUserCount !== null && users.length > _lastUserCount) {
+      const newest = users[users.length - 1];
+      onNewUserDetected(newest);
+    }
+    _lastUserCount = users.length;
+  }
+
+  function onNewUserDetected(u) {
+    // Tránh thông báo trùng lặp trong 2 giây
+    const key = 'notified_' + u.id;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    showNewUserNotification(u);
+    try { bc.postMessage({ type: 'new_user', user: { id: u.id, name: u.name, phone: u.phone, avatar: u.avatar } }); } catch(e) {}
+    const backupModal = document.getElementById('backupModal');
+    if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
+  }
+
+  // Polling mỗi 3 giây — bắt được cả khi tab khác cùng máy đăng ký
+  function startUserPolling() {
+    _lastUserCount = (JSON.parse(localStorage.getItem('cntt1808_users') || '[]')).length;
+    setInterval(() => {
+      try {
+        const users = JSON.parse(localStorage.getItem('cntt1808_users') || '[]');
+        if (users.length > _lastUserCount) {
+          const newOnes = users.slice(_lastUserCount);
+          newOnes.forEach(u => onNewUserDetected(u));
+        }
+        _lastUserCount = users.length;
+        // Tự động refresh bảng nếu modal đang mở
+        const backupModal = document.getElementById('backupModal');
+        if (backupModal && !backupModal.classList.contains('hidden')) {
+          renderBackupList();
+        }
+      } catch(e) {}
+    }, 3000);
+  }
 
   function loadMessages(convId) {
     const d = localStorage.getItem('cntt1808_msgs_' + convId);
@@ -410,6 +511,8 @@
   window.openUnfriendModal = function(u) {
     unfriendTargetId = u.id;
     document.getElementById('unfriendName').textContent = u.name;
+    document.getElementById('unfriendAvatar').textContent = u.avatar || '👤';
+    document.getElementById('unfriendPhone').textContent = u.phone ? '📞 ' + u.phone : '';
     document.getElementById('unfriendModal').classList.remove('hidden');
   };
 
@@ -492,6 +595,7 @@
     saveUsers(users);
     APP.currentUser = user;
     localStorage.setItem('cntt1808_session', user.id);
+    setOnline(user.id);
     showMsg('Đăng nhập thành công! Chào ' + user.name, 'success');
     setTimeout(enterChat, 800);
   });
@@ -509,12 +613,13 @@
     const users = loadUsers();
     if (users.some(u => u.phone === phone)) { showMsg('Số điện thoại đã được đăng ký.', 'error'); return; }
     const avatars = ['🧑','👩','👦','👧','🧑‍💻','👩‍💻','👨‍🎓','👩‍🎓','🦸','🧙'];
-    const newUser = { id: 'u_' + Date.now(), name, phone, password, avatar: avatars[Math.floor(Math.random()*avatars.length)], status: 'online' };
+    const newUser = { id: 'u_' + Date.now(), name, phone, password, avatar: avatars[Math.floor(Math.random()*avatars.length)], status: 'online', registeredAt: Date.now() };
     users.push(newUser);
     saveUsers(users);
     showMsg('Đăng ký thành công! Đang đăng nhập...', 'success');
     APP.currentUser = newUser;
     localStorage.setItem('cntt1808_session', newUser.id);
+    setOnline(newUser.id);
     setTimeout(enterChat, 1000);
   });
 
@@ -527,11 +632,105 @@
     showMsg('Đã ghi nhận yêu cầu đặt lại mật khẩu.', 'success');
   });
 
+  // ===== ONLINE STATUS SYSTEM =====
+  // Mỗi người dùng đang hoạt động ghi timestamp heartbeat vào localStorage
+  // Key: cntt1808_heartbeat_<userId> = timestamp (ms)
+  // Nếu heartbeat quá 45s => coi là offline
+
+  const HEARTBEAT_INTERVAL = 20000;  // gửi heartbeat mỗi 20 giây
+  const HEARTBEAT_TIMEOUT  = 45000;  // quá 45s không heartbeat => offline
+  let _heartbeatTimer = null;
+
+  function setOnline(userId) {
+    localStorage.setItem('cntt1808_heartbeat_' + userId, Date.now().toString());
+    // Cũng cập nhật trường status trong danh sách users
+    const users = loadUsers();
+    const u = users.find(u => u.id === userId);
+    if (u && u.status !== 'online') { u.status = 'online'; saveUsers(users); }
+  }
+
+  function setOffline(userId) {
+    localStorage.removeItem('cntt1808_heartbeat_' + userId);
+    const users = loadUsers();
+    const u = users.find(u => u.id === userId);
+    if (u) { u.status = 'offline'; saveUsers(users); }
+  }
+
+  function isUserOnline(userId) {
+    const ts = localStorage.getItem('cntt1808_heartbeat_' + userId);
+    if (!ts) return false;
+    return (Date.now() - parseInt(ts, 10)) < HEARTBEAT_TIMEOUT;
+  }
+
+  function startHeartbeat() {
+    if (_heartbeatTimer) clearInterval(_heartbeatTimer);
+    if (!APP.currentUser) return;
+    setOnline(APP.currentUser.id);
+    _heartbeatTimer = setInterval(() => {
+      if (APP.currentUser) setOnline(APP.currentUser.id);
+    }, HEARTBEAT_INTERVAL);
+  }
+
+  function stopHeartbeat() {
+    if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
+    if (APP.currentUser) setOffline(APP.currentUser.id);
+  }
+
+  // Khi ẩn tab (chuyển tab, minimize), tạm ngừng heartbeat → người khác thấy offline sau 45s
+  document.addEventListener('visibilitychange', () => {
+    if (!APP.currentUser) return;
+    if (document.hidden) {
+      // Không dừng hẳn — vẫn ghi heartbeat khi tab ẩn để không offline ngay
+      // Nếu muốn "ẩn tab = offline" thì bỏ comment dòng dưới:
+      // stopHeartbeat();
+    } else {
+      setOnline(APP.currentUser.id);
+    }
+  });
+
+  // Khi đóng tab/trình duyệt → set offline ngay (sendBeacon để đảm bảo chạy kịp)
+  window.addEventListener('beforeunload', () => {
+    if (APP.currentUser) {
+      localStorage.removeItem('cntt1808_heartbeat_' + APP.currentUser.id);
+      const users = loadUsers();
+      const u = users.find(u => u.id === APP.currentUser.id);
+      if (u) { u.status = 'offline'; localStorage.setItem('cntt1808_users', JSON.stringify(users)); }
+    }
+  });
+
+  // Polling cập nhật trạng thái real-time mỗi 5 giây:
+  // kiểm tra heartbeat của tất cả users và đồng bộ field status
+  function startStatusPolling() {
+    setInterval(() => {
+      const users = loadUsers();
+      let changed = false;
+      users.forEach(u => {
+        const online = isUserOnline(u.id);
+        const newStatus = online ? 'online' : 'offline';
+        if (u.status !== newStatus) { u.status = newStatus; changed = true; }
+      });
+      if (changed) {
+        localStorage.setItem('cntt1808_users', JSON.stringify(users));
+        try { bc.postMessage({ type: 'status_update' }); } catch(e) {}
+      }
+      // Cập nhật sidebar nếu modal backup đang mở
+      const backupModal = document.getElementById('backupModal');
+      if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
+      // Cập nhật danh sách hội thoại (dots online)
+      if (APP.currentUser) renderConvList(document.getElementById('searchInput')?.value || '');
+    }, 5000);
+  }
+
   const savedSession = localStorage.getItem('cntt1808_session');
   if (savedSession) {
     const users = loadUsers();
     const user = users.find(u => u.id === savedSession);
-    if (user) { APP.currentUser = user; enterChat(); }
+    if (user) {
+      user.status = 'online';
+      saveUsers(users);
+      APP.currentUser = user;
+      enterChat();
+    }
   }
 
   function enterChat() {
@@ -546,9 +745,13 @@
     document.getElementById('myAvatar').textContent = u.avatar;
     renderConvList();
     setupBroadcastListener();
+    startUserPolling();
+    startHeartbeat();
+    startStatusPolling();
   }
 
   document.getElementById('logoutBtn').onclick = () => {
+    stopHeartbeat();
     const users = loadUsers();
     const u = users.find(u => u.id === APP.currentUser.id);
     if (u) { u.status = 'offline'; saveUsers(users); }
@@ -682,24 +885,44 @@
     div.className = 'find-item';
     let actionHtml = '';
     if (state === 'friend') {
-      actionHtml = `<button class="find-btn friend-btn" onclick="openUnfriendModal(window._findUser_${u.id})"><i class="ti ti-user-check"></i>Bạn bè</button>`;
+      actionHtml = `
+        <div class="find-actions">
+          <button class="find-btn friend-btn" title="Nhấn để xóa bạn" onclick="openUnfriendModal(window._findUser_${u.id})">
+            <i class="ti ti-user-check"></i><span class="fb-label-default">Bạn bè</span><span class="fb-label-hover">Xóa bạn</span>
+          </button>
+        </div>`;
     } else if (state === 'sent') {
-      actionHtml = `<button class="find-btn sent-btn" disabled><i class="ti ti-clock"></i>Đã gửi</button>`;
+      actionHtml = `
+        <div class="find-actions">
+          <button class="find-btn sent-btn" disabled title="Đã gửi lời mời, chờ đối phương chấp nhận">
+            <i class="ti ti-clock"></i>Đã gửi lời mời
+          </button>
+        </div>`;
     } else if (state === 'incoming') {
       actionHtml = `
-        <button class="find-btn accept-btn" onclick="handleAccept('${u.id}')"><i class="ti ti-check"></i>Chấp nhận</button>
-        <button class="find-btn reject-btn" onclick="handleReject('${u.id}')"><i class="ti ti-x"></i></button>
-      `;
+        <div class="find-actions">
+          <button class="find-btn accept-btn" title="Chấp nhận lời mời kết bạn" onclick="handleAccept('${u.id}')">
+            <i class="ti ti-user-check"></i>Chấp nhận
+          </button>
+          <button class="find-btn reject-btn" title="Từ chối lời mời" onclick="handleReject('${u.id}')">
+            <i class="ti ti-x"></i>
+          </button>
+        </div>`;
     } else {
-      actionHtml = `<button class="find-btn add-btn" onclick="handleAddFriend('${u.id}')"><i class="ti ti-user-plus"></i>Kết bạn</button>`;
+      actionHtml = `
+        <div class="find-actions">
+          <button class="find-btn add-btn" title="Gửi lời mời kết bạn" onclick="handleAddFriend('${u.id}')">
+            <i class="ti ti-user-plus"></i>Kết bạn
+          </button>
+        </div>`;
     }
     div.innerHTML = `
-      <div class="find-avatar">${u.avatar}<span class="conv-dot ${u.status === 'online' ? 'online' : 'offline'}"></span></div>
+      <div class="find-avatar">${u.avatar}<span class="conv-dot ${isUserOnline(u.id) ? 'online' : 'offline'}"></span></div>
       <div class="find-info">
         <div class="find-name">${u.name}</div>
         <div class="find-phone"><i class="ti ti-phone"></i>${u.phone}</div>
       </div>
-      <div class="find-actions">${actionHtml}</div>
+      ${actionHtml}
     `;
     window['_findUser_' + u.id] = u;
     return div;
@@ -711,9 +934,9 @@
     div.dataset.id = convId;
     const timeStr = lastTime ? formatTime(lastTime) : '';
     const truncated = (lastMsg || '').length > 30 ? lastMsg.slice(0, 30) + '...' : lastMsg;
-    const isOnline = target?.status === 'online';
+    const isOnline = type !== 'group' && target?.id ? isUserOnline(target.id) : false;
     div.innerHTML = `
-      <div class="conv-avatar">${avatar}<span class="conv-dot ${isOnline && type !== 'group' ? 'online' : type !== 'group' ? 'offline' : 'online'}"></span></div>
+      <div class="conv-avatar">${avatar}<span class="conv-dot ${type === 'group' ? 'online' : isOnline ? 'online' : 'offline'}"></span></div>
       <div class="conv-info">
         <div class="conv-name">${name}</div>
         <div class="conv-last">${escapeHtml(truncated)}</div>
@@ -737,7 +960,7 @@
     document.getElementById('chatName').textContent = name;
     document.getElementById('chatAvatar').textContent = avatar;
 
-    const isOnline = target?.status === 'online';
+    const isOnline = target?.id ? isUserOnline(target.id) : target?.status === 'online';
     document.getElementById('chatStatus').textContent = type === 'group' 
       ? (target?.members?.length || 0) + ' thành viên'
       : isOnline ? 'Đang hoạt động' : 'Ngoại tuyến';
@@ -978,9 +1201,43 @@
 
   // ===== VIDEO / VOICE CALL (NHÓM + 1:1) =====
   let peer = null;
-  let activeCalls = {}; // Chứa nhiều phiên kết nối (Group call)
+  let activeCalls = {};
   let localStream = null;
+  let callTimerInterval = null;
+  let callStartTime = null;
+  let callDurationSecs = 0;
 
+  // ----- TIMER -----
+  function startCallTimer() {
+    stopCallTimer(); // đảm bảo không chạy 2 lần
+    callStartTime = Date.now();
+    const timerEl = document.getElementById('callTimer');
+    const statusEl = document.getElementById('callStatus');
+    timerEl.classList.remove('hidden');
+    statusEl.classList.add('hidden');
+    callTimerInterval = setInterval(() => {
+      callDurationSecs = Math.floor((Date.now() - callStartTime) / 1000);
+      const m = String(Math.floor(callDurationSecs / 60)).padStart(2, '0');
+      const s = String(callDurationSecs % 60).padStart(2, '0');
+      document.getElementById('callTimerDisplay').textContent = m + ':' + s;
+    }, 1000);
+  }
+
+  function stopCallTimer() {
+    if (callTimerInterval) { clearInterval(callTimerInterval); callTimerInterval = null; }
+    const timerEl = document.getElementById('callTimer');
+    const statusEl = document.getElementById('callStatus');
+    if (timerEl) timerEl.classList.add('hidden');
+    if (statusEl) { statusEl.classList.remove('hidden'); statusEl.textContent = 'Đang gọi...'; }
+  }
+
+  function formatDuration(secs) {
+    const m = Math.floor(secs / 60), s = secs % 60;
+    if (m === 0) return `${s} giây`;
+    return `${m} phút ${s} giây`;
+  }
+
+  // ----- PEER INIT -----
   async function initPeer() {
     if (peer && !peer.destroyed) return peer;
     return new Promise((resolve) => {
@@ -997,53 +1254,75 @@
     });
   }
 
+  // ----- END CALL (cả 2 bên) -----
+  function endCall(fromRemote = false) {
+    const duration = callDurationSecs;
+    stopCallTimer();
+    callDurationSecs = 0;
+
+    // Phát tín hiệu kết thúc cho bên kia nếu MÌNH chủ động tắt
+    if (!fromRemote) {
+      const signal = { type: 'end_call', by: APP.currentUser.id, time: Date.now() };
+      try { bc.postMessage(signal); } catch(e) {}
+      // localStorage signal cho tab/cửa sổ khác
+      localStorage.setItem('cntt1808_call_signal', JSON.stringify(signal));
+      setTimeout(() => localStorage.removeItem('cntt1808_call_signal'), 4000);
+    }
+
+    Object.values(activeCalls).forEach(c => { try { c.close(); } catch(e) {} });
+    activeCalls = {};
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+
+    document.getElementById('callModal').classList.add('hidden');
+    document.getElementById('videoGrid').innerHTML = '';
+    document.getElementById('localVideo').srcObject = null;
+
+    if (fromRemote && duration > 0) {
+      showToast(`📞 Cuộc gọi kết thúc · ${formatDuration(duration)}`, 'info');
+    } else if (duration > 0) {
+      showToast(`📞 Đã kết thúc · ${formatDuration(duration)}`, 'info');
+    }
+  }
+
+  // ----- START CALL -----
   async function startCall(isVideo) {
     if (!APP.activeConvTarget) return;
     const isGroup = APP.activeConvType === 'group';
 
-    try { localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true }); } 
+    try { localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true }); }
     catch(e) { showToast('Không thể truy cập ' + (isVideo ? 'camera/mic' : 'mic'), 'error'); return; }
 
     await initPeer();
-    
-    // Đồng bộ ID peer hiện tại
+
     const peerMap = JSON.parse(localStorage.getItem('cntt1808_peers') || '{}');
     peerMap[APP.currentUser.id] = APP.myPeerId;
     localStorage.setItem('cntt1808_peers', JSON.stringify(peerMap));
 
     showCallModal(APP.activeConvTarget.name, APP.activeConvTarget.avatar || '👥', isVideo);
     document.getElementById('localVideo').srcObject = localStream;
-    document.getElementById('videoGrid').innerHTML = ''; // Làm sạch lưới video cũ
-    activeCalls = {}; // Reset list cuộc gọi
+    document.getElementById('videoGrid').innerHTML = '';
+    activeCalls = {};
 
     if (!isGroup) {
-      // Logic gọi 1-1
-      const targetId = APP.activeConvTarget.id;
-      const targetPeerId = peerMap[targetId];
+      const targetPeerId = peerMap[APP.activeConvTarget.id];
       if (!targetPeerId) {
         showToast(`${APP.activeConvTarget.name} chưa online để nhận cuộc gọi`, 'info');
         endCall(); return;
       }
       makeCall(targetPeerId, localStream);
-      sendMessage('call', `📞 Cuộc gọi ${isVideo ? 'video' : 'thoại'} đã kết thúc`, { callType: isVideo ? 'video' : 'voice' });
+      sendMessage('call', `📞 Cuộc gọi ${isVideo ? 'video' : 'thoại'}`, { callType: isVideo ? 'video' : 'voice' });
     } else {
-      // Logic gọi Nhóm (gọi tất cả thành viên trong nhóm)
       const members = APP.activeConvTarget.members.filter(id => id !== APP.currentUser.id);
       let calledAny = false;
-      
       members.forEach(uid => {
-        const targetPeerId = peerMap[uid];
-        if (targetPeerId) {
-          makeCall(targetPeerId, localStream);
-          calledAny = true;
-        }
+        const pid = peerMap[uid];
+        if (pid) { makeCall(pid, localStream); calledAny = true; }
       });
-      
       if (!calledAny) {
         showToast('Không có thành viên nào online để nhận cuộc gọi', 'info');
         endCall(); return;
       }
-      sendMessage('call', `📞 Đã bắt đầu cuộc gọi nhóm ${isVideo ? 'video' : 'thoại'}`, { callType: isVideo ? 'video' : 'voice' });
+      sendMessage('call', `📞 Cuộc gọi nhóm ${isVideo ? 'video' : 'thoại'}`, { callType: isVideo ? 'video' : 'voice' });
     }
   }
 
@@ -1052,20 +1331,26 @@
     activeCalls[targetPeerId] = call;
     call.on('stream', remoteStream => {
       addVideoStream(remoteStream, targetPeerId);
-      document.getElementById('callStatus').textContent = 'Đang kết nối...';
+      document.getElementById('callStatus').textContent = 'Đã kết nối';
+      startCallTimer(); // Bắt đầu đếm giây khi kết nối thành công
     });
-    call.on('close', () => removeVideoStream(targetPeerId));
+    call.on('close', () => {
+      removeVideoStream(targetPeerId);
+      // Nếu không còn cuộc gọi nào → bên kia đã tắt → ngắt cả modal
+      if (Object.keys(activeCalls).length === 0) {
+        showToast('📴 Người dùng kia đã kết thúc cuộc gọi', 'info');
+        endCall(true);
+      }
+    });
     call.on('error', () => removeVideoStream(targetPeerId));
   }
 
-  // Thêm luồng video vào Grid (dành cho Gọi nhóm)
   function addVideoStream(stream, peerId) {
     let video = document.getElementById('vid_' + peerId);
     if (!video) {
       video = document.createElement('video');
       video.id = 'vid_' + peerId;
-      video.autoplay = true;
-      video.playsInline = true;
+      video.autoplay = true; video.playsInline = true;
       document.getElementById('videoGrid').appendChild(video);
     }
     video.srcObject = stream;
@@ -1074,10 +1359,7 @@
   function removeVideoStream(peerId) {
     const video = document.getElementById('vid_' + peerId);
     if (video) video.remove();
-    if (activeCalls[peerId]) {
-      activeCalls[peerId].close();
-      delete activeCalls[peerId];
-    }
+    if (activeCalls[peerId]) { try { activeCalls[peerId].close(); } catch(e) {} delete activeCalls[peerId]; }
   }
 
   function handleIncomingCall(call) {
@@ -1085,8 +1367,7 @@
     const peerMap = JSON.parse(localStorage.getItem('cntt1808_peers') || '{}');
     const callerEntry = Object.entries(peerMap).find(([uid, pid]) => pid === call.peer);
     const callerUid = callerEntry ? callerEntry[0] : null;
-    const users = loadUsers();
-    const caller = users.find(u => u.id === callerUid);
+    const caller = loadUsers().find(u => u.id === callerUid);
     showIncomingCall(caller?.name || 'Ai đó', caller?.avatar || '👤');
   }
 
@@ -1094,10 +1375,11 @@
     const m = document.getElementById('callModal');
     document.getElementById('callName').textContent = name;
     document.getElementById('callAvatar').textContent = avatar;
-    document.getElementById('callStatus').textContent = isVideo ? 'Cuộc gọi video...' : 'Cuộc gọi thoại...';
+    document.getElementById('callStatus').textContent = isVideo ? '📹 Đang kết nối...' : '📞 Đang kết nối...';
+    document.getElementById('callTimer').classList.add('hidden');
+    document.getElementById('callTimerDisplay').textContent = '00:00';
     m.classList.remove('hidden');
-    if (!isVideo) m.classList.add('voice-only');
-    else m.classList.remove('voice-only');
+    if (!isVideo) m.classList.add('voice-only'); else m.classList.remove('voice-only');
   }
 
   function showIncomingCall(name, avatar) {
@@ -1106,27 +1388,16 @@
     document.getElementById('incomingCall').classList.remove('hidden');
   }
 
-  function endCall() {
-    // Ngắt toàn bộ luồng gọi
-    Object.values(activeCalls).forEach(call => call.close());
-    activeCalls = {};
-    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-    
-    document.getElementById('callModal').classList.add('hidden');
-    document.getElementById('videoGrid').innerHTML = ''; // Làm sạch lưới
-    document.getElementById('localVideo').srcObject = null;
-  }
-
   document.getElementById('videoCallBtn').onclick = () => startCall(true);
   document.getElementById('voiceCallBtn').onclick = () => startCall(false);
-  document.getElementById('endCallBtn').onclick = endCall;
+  document.getElementById('endCallBtn').onclick = () => endCall(false);
 
   document.getElementById('acceptCallBtn').onclick = async () => {
     document.getElementById('incomingCall').classList.add('hidden');
     const call = APP.pendingCall;
     if (!call) return;
 
-    try { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); } 
+    try { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); }
     catch(e) { localStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
 
     document.getElementById('videoGrid').innerHTML = '';
@@ -1134,9 +1405,16 @@
 
     call.answer(localStream);
     activeCalls[call.peer] = call;
-    call.on('stream', remoteStream => addVideoStream(remoteStream, call.peer));
-    call.on('close', () => removeVideoStream(call.peer));
-    
+    call.on('stream', remoteStream => {
+      addVideoStream(remoteStream, call.peer);
+      startCallTimer(); // Bắt đầu đếm giây
+    });
+    call.on('close', () => {
+      removeVideoStream(call.peer);
+      showToast('📴 Người dùng kia đã kết thúc cuộc gọi', 'info');
+      endCall(true);
+    });
+
     showCallModal('Cuộc gọi đến', '📞', true);
     document.getElementById('localVideo').srcObject = localStream;
   };
@@ -1144,6 +1422,7 @@
   document.getElementById('rejectCallBtn').onclick = () => {
     document.getElementById('incomingCall').classList.add('hidden');
     if (APP.pendingCall) APP.pendingCall.close();
+    showToast('Đã từ chối cuộc gọi', 'info');
   };
 
   document.getElementById('toggleMicBtn').onclick = function() {
@@ -1212,7 +1491,7 @@
         <div class="panel-profile">
           <div class="panel-avatar">${t.avatar}</div>
           <div class="panel-name">${t.name}</div>
-          <div class="panel-status ${t.status}">${t.status === 'online' ? '🟢 Đang hoạt động' : '⚫ Ngoại tuyến'}</div>
+          <div class="panel-status ${isUserOnline(t.id) ? 'online' : 'offline'}">${isUserOnline(t.id) ? '🟢 Đang hoạt động' : '⚫ Ngoại tuyến'}</div>
           <div class="panel-phone"><i class="ti ti-phone"></i> ${t.phone}</div>
         </div>
         <div class="panel-actions">
@@ -1285,8 +1564,141 @@
         renderConvList(document.getElementById('searchInput').value);
         updateFindBadge();
       }
+      if (e.data.type === 'new_user') {
+        showNewUserNotification(e.data.user);
+        const backupModal = document.getElementById('backupModal');
+        if (!backupModal.classList.contains('hidden')) renderBackupList();
+      }
+      if (e.data.type === 'status_update') {
+        renderConvList(document.getElementById('searchInput').value);
+        const backupModal = document.getElementById('backupModal');
+        if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
+      }
+      if (e.data.type === 'end_call') {
+        // Bên kia tắt máy → ngắt modal phía này
+        if (!document.getElementById('callModal').classList.contains('hidden')) {
+          endCall(true);
+        }
+      }
     });
   }
+
+  // ===== BACKUP / ACCOUNT MANAGER =====
+  function renderBackupList() {
+    const users = loadUsers();
+    const sorted = [...users].sort((a, b) => (b.registeredAt || 0) - (a.registeredAt || 0));
+    const countEl = document.getElementById('backupUserCount');
+    const listEl = document.getElementById('backupUserList');
+    const refreshEl = document.getElementById('backupLastRefresh');
+    const onlineCount = users.filter(u => isUserOnline(u.id)).length;
+    countEl.textContent = `${users.length} tài khoản • ${onlineCount} đang online`;
+    refreshEl.textContent = 'Cập nhật lúc: ' + new Date().toLocaleTimeString('vi-VN');
+    listEl.innerHTML = '';
+    sorted.forEach((u, idx) => {
+      const isNew = u.registeredAt && (Date.now() - u.registeredAt < 120000);
+      const row = document.createElement('div');
+      row.className = 'backup-user-row' + (isNew ? ' is-new' : '');
+      const dateStr = u.registeredAt ? new Date(u.registeredAt).toLocaleString('vi-VN') : '—';
+      const isDefault = u.id.startsWith('u1') || u.id.startsWith('u2') || u.id.startsWith('u3') || u.id.startsWith('u4') || u.id.startsWith('u5');
+      row.innerHTML = `
+        <div class="backup-rank">${idx + 1}</div>
+        <div class="backup-avatar">${u.avatar}</div>
+        <div class="backup-info">
+          <div class="backup-name">${u.name}${isNew ? ' <span class="new-badge">MỚI</span>' : ''}</div>
+          <div class="backup-phone"><i class="ti ti-phone" style="font-size:12px;"></i> ${u.phone}</div>
+        </div>
+        <div class="backup-right">
+          <div class="backup-status ${isUserOnline(u.id) ? 'online' : 'offline'}">${isUserOnline(u.id) ? '🟢 Online' : '⚫ Offline'}</div>
+          <div class="backup-date"><i class="ti ti-calendar" style="font-size:11px;"></i> ${dateStr}</div>
+        </div>
+      `;
+      listEl.appendChild(row);
+    });
+  }
+
+  function showNewUserNotification(u) {
+    const toast = document.getElementById('newUserToast');
+    document.getElementById('newUserToastName').textContent = `${u.avatar} ${u.name} (${u.phone})`;
+    toast.classList.remove('hidden');
+    clearTimeout(window._newUserToastTimer);
+    window._newUserToastTimer = setTimeout(() => toast.classList.add('hidden'), 6000);
+    // Hiện badge đỏ trên nút backup
+    const btn = document.getElementById('backupBtn');
+    if (btn) {
+      btn.style.position = 'relative';
+      let dot = btn.querySelector('.backup-new-dot');
+      if (!dot) {
+        dot = document.createElement('span');
+        dot.className = 'backup-new-dot';
+        dot.style.cssText = 'position:absolute;top:4px;right:4px;width:8px;height:8px;background:#e53935;border-radius:50%;border:2px solid #0068ff;';
+        btn.appendChild(dot);
+      }
+    }
+  }
+
+  document.getElementById('backupBtn').onclick = () => {
+    document.getElementById('backupModal').classList.remove('hidden');
+    renderBackupList();
+    // Xóa badge khi mở modal
+    const dot = document.getElementById('backupBtn').querySelector('.backup-new-dot');
+    if (dot) dot.remove();
+  };
+  document.getElementById('closeBackupModal').onclick = () => document.getElementById('backupModal').classList.add('hidden');
+
+  document.getElementById('exportJsonBtn').onclick = () => {
+    const users = loadUsers().map(u => ({
+      id: u.id, name: u.name, phone: u.phone,
+      avatar: u.avatar, status: u.status,
+      registeredAt: u.registeredAt ? new Date(u.registeredAt).toLocaleString('vi-VN') : 'N/A'
+    }));
+    const blob = new Blob([JSON.stringify(users, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'cntt1808_accounts_' + Date.now() + '.json'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ Đã xuất file JSON!', 'success');
+  };
+
+  document.getElementById('exportCsvBtn').onclick = () => {
+    const users = loadUsers();
+    const rows = [['STT','ID','Họ và tên','Số điện thoại','Avatar','Trạng thái','Ngày đăng ký']];
+    users.forEach((u, i) => {
+      rows.push([i+1, u.id, u.name, u.phone, u.avatar, u.status === 'online' ? 'Đang hoạt động' : 'Ngoại tuyến',
+        u.registeredAt ? new Date(u.registeredAt).toLocaleString('vi-VN') : 'N/A']);
+    });
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'cntt1808_accounts_' + Date.now() + '.csv'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('✅ Đã xuất file CSV!', 'success');
+  };
+
+  // Lắng nghe storage event để phát hiện người đăng ký mới từ tab khác
+  window.addEventListener('storage', e => {
+    if (e.key === 'cntt1808_users' && e.newValue && e.oldValue) {
+      try {
+        const oldList = JSON.parse(e.oldValue);
+        const newList = JSON.parse(e.newValue);
+        if (newList.length > oldList.length) {
+          const newest = newList[newList.length - 1];
+          showNewUserNotification(newest);
+          const backupModal = document.getElementById('backupModal');
+          if (!backupModal.classList.contains('hidden')) renderBackupList();
+        }
+      } catch(err) {}
+    }
+    // Bên kia tắt cuộc gọi → ngắt modal phía này
+    if (e.key === 'cntt1808_call_signal' && e.newValue) {
+      try {
+        const sig = JSON.parse(e.newValue);
+        if (sig.type === 'end_call' && sig.by !== APP.currentUser?.id) {
+          if (!document.getElementById('callModal').classList.contains('hidden')) {
+            endCall(true);
+          }
+        }
+      } catch(err) {}
+    }
+  });
 
   // ===== UTILS =====
   function escapeHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }

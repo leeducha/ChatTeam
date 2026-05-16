@@ -794,3 +794,233 @@
   .sticker-picker { left: 0; bottom: 60px; width: 100%; border-radius: 18px 18px 0 0; }
   #localVideo { width: 100px; height: 80px; }
 }
+
+/* ===== BACKUP MODAL ===== */
+.backup-modal-box {
+  max-width: 580px;
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.backup-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid #f0f4ff;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: #f8fbff;
+}
+
+.backup-count-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #172033;
+}
+
+.backup-live-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76,175,80,0.25);
+  animation: pulse-dot 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(76,175,80,0.25); }
+  50% { box-shadow: 0 0 0 6px rgba(76,175,80,0.12); }
+}
+
+.backup-user-list {
+  flex: 1;
+  overflow-y: auto;
+}
+.backup-user-list::-webkit-scrollbar { width: 4px; }
+.backup-user-list::-webkit-scrollbar-thumb { background: #dce5f5; border-radius: 2px; }
+
+.backup-user-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #f0f4ff;
+  transition: background 0.1s;
+  border-left: 3px solid transparent;
+}
+.backup-user-row:hover { background: #f8fbff; }
+.backup-user-row.is-new {
+  background: #eafff3;
+  border-left-color: #1f9d55;
+  animation: highlightRow 0.5s ease;
+}
+@keyframes highlightRow {
+  from { background: #c8f7e0; }
+  to { background: #eafff3; }
+}
+
+.backup-rank {
+  width: 26px; height: 26px;
+  background: #eaf3ff;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #0068ff;
+  flex-shrink: 0;
+}
+
+.backup-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e0eeff, #c7d9ff);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+
+.backup-info { flex: 1; min-width: 0; }
+.backup-name {
+  font-weight: 700; font-size: 14px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 6px;
+}
+.backup-phone { font-size: 12px; color: #9ca3af; margin-top: 2px; display: flex; align-items: center; gap: 4px; }
+
+.backup-right { text-align: right; flex-shrink: 0; }
+.backup-status { font-size: 12px; font-weight: 700; }
+.backup-status.online { color: #1f9d55; }
+.backup-status.offline { color: #9ca3af; }
+.backup-date { font-size: 11px; color: #b0b8cc; margin-top: 3px; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+
+.backup-footer {
+  padding: 8px 20px;
+  border-top: 1px solid #f0f4ff;
+  font-size: 11px;
+  color: #b0b8cc;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fbff;
+}
+
+.new-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #1f9d55;
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  animation: badgePop 0.4s ease;
+}
+@keyframes badgePop {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* ===== NEW USER NOTIFICATION TOAST ===== */
+.new-user-toast {
+  position: fixed;
+  top: 20px; right: 20px;
+  z-index: 9998;
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(0,104,255,0.2), 0 2px 8px rgba(0,0,0,0.1);
+  border: 1px solid #dce5f5;
+  min-width: 280px;
+  max-width: 340px;
+  animation: slideInFromRight 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes slideInFromRight {
+  from { opacity: 0; transform: translateX(60px) scale(0.9); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+.new-user-toast-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 14px 16px;
+}
+
+.new-user-toast-icon {
+  width: 40px; height: 40px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #0068ff, #0052cc);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 20px; flex-shrink: 0;
+}
+
+.new-user-toast-text { flex: 1; min-width: 0; }
+.new-user-toast-title { font-size: 12px; font-weight: 800; color: #172033; }
+.new-user-toast-name { font-size: 13px; color: #0068ff; font-weight: 700; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.new-user-toast-close {
+  width: 28px; height: 28px;
+  background: #f0f4ff; border: none; border-radius: 8px;
+  color: #6b7280; cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: background 0.15s;
+}
+.new-user-toast-close:hover { background: #ffeaea; color: #e53935; }
+
+/* ===== IMPROVED FRIEND BUTTON HOVER EFFECTS ===== */
+.friend-btn { background: #eaf3ff; color: #0068ff; position: relative; overflow: hidden; }
+.friend-btn .fb-label-hover { display: none; }
+.friend-btn .fb-label-default { display: inline; }
+.friend-btn:hover { background: #ffeaea; color: #e53935; }
+.friend-btn:hover .fb-label-default { display: none; }
+.friend-btn:hover .fb-label-hover { display: inline; }
+
+/* Contacts list unfriend button - more visible */
+.unfriend-btn {
+  border: none; background: #ffeaea !important;
+  color: #e53935 !important; font-size: 15px;
+  cursor: pointer; padding: 5px 8px;
+  border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  transition: 0.15s;
+  opacity: 0;
+  gap: 4px;
+}
+.unfriend-btn::after { content: 'Xóa'; font-size: 11px; font-weight: 700; display: none; }
+.conv-item:hover .unfriend-btn { opacity: 1; }
+.unfriend-btn:hover { background: #e53935 !important; color: white !important; padding: 5px 10px; }
+.unfriend-btn:hover::after { display: inline; }
+
+/* ===== CALL TIMER ===== */
+.call-timer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 800;
+  color: white;
+  letter-spacing: 2px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  animation: timerFadeIn 0.4s ease;
+}
+@keyframes timerFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.call-timer-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76,175,80,0.35);
+  animation: timerBlink 1s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes timerBlink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 3px rgba(76,175,80,0.35); }
+  50%       { opacity: 0.5; box-shadow: 0 0 0 6px rgba(76,175,80,0.15); }
+}
