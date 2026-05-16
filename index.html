@@ -9,17 +9,6 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="chat.css" />
   <style>
-    .video-grid {
-      position: absolute; inset: 0;
-      display: flex; flex-wrap: wrap; align-content: center; justify-content: center;
-      background: #1a1a2e;
-    }
-    .video-grid video {
-      flex: 1 1 50%; min-width: 50%; max-height: 100%; object-fit: cover;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    .call-modal.voice-only .video-grid { display: none; }
-
     /* ===== FIREBASE LOADING OVERLAY ===== */
     #fbLoading {
       position: fixed; inset: 0; z-index: 9999;
@@ -415,25 +404,54 @@
 
 <div class="call-modal hidden" id="callModal">
   <div class="call-container">
-    <div id="videoGrid" class="video-grid"></div>
-    <video id="remoteVideo" autoplay playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#1a1a2e;"></video>
-    <video id="localVideo" autoplay playsinline muted></video>
+    <!-- Remote video: toàn màn hình -->
+    <video id="remoteVideo" autoplay playsinline></video>
+    <!-- Placeholder khi chưa có remote video -->
+    <div class="remote-placeholder" id="remotePlaceholder">
+      <div class="avatar call-avatar" id="callAvatar">?</div>
+      <div class="call-name" id="callName">Tên</div>
+    </div>
+    <!-- Local video: góc nhỏ, có thể kéo -->
+    <div class="local-video-wrap" id="localVideoWrap">
+      <video id="localVideo" autoplay playsinline muted></video>
+      <div class="local-video-label">Bạn</div>
+    </div>
+    <!-- Overlay thông tin & điều khiển -->
     <div class="call-overlay">
-      <div class="call-info">
-        <div class="avatar call-avatar" id="callAvatar">?</div>
-        <div class="call-name" id="callName">Tên</div>
-        <div class="call-status" id="callStatus">Đang gọi...</div>
+      <div class="call-info-bar">
+        <div class="call-peer-name" id="callPeerName">Tên</div>
+        <div class="call-status" id="callStatus">Đang đổ chuông...</div>
         <div class="call-timer hidden" id="callTimer">
           <span class="call-timer-dot"></span>
           <span id="callTimerDisplay">00:00</span>
         </div>
       </div>
+      <!-- Nút điều khiển -->
       <div class="call-controls">
-        <button class="call-btn" id="toggleMicBtn" title="Tắt/bật mic"><i class="ti ti-microphone"></i></button>
-        <button class="call-btn danger" id="endCallBtn" title="Kết thúc"><i class="ti ti-phone-off"></i></button>
-        <button class="call-btn" id="toggleCamBtn" title="Tắt/bật camera"><i class="ti ti-video"></i></button>
-        <button class="call-btn" id="toggleScreenBtn" title="Chia sẻ màn hình"><i class="ti ti-screen-share"></i></button>
+        <div class="call-ctrl-group">
+          <button class="call-btn" id="toggleMicBtn" title="Tắt/bật mic">
+            <i class="ti ti-microphone"></i>
+            <span>Micro</span>
+          </button>
+          <button class="call-btn" id="toggleCamBtn" title="Tắt/bật camera">
+            <i class="ti ti-video"></i>
+            <span>Camera</span>
+          </button>
+          <button class="call-btn" id="toggleScreenBtn" title="Chia sẻ màn hình">
+            <i class="ti ti-screen-share"></i>
+            <span>Màn hình</span>
+          </button>
+        </div>
+        <button class="call-btn danger end-call-btn" id="endCallBtn" title="Kết thúc">
+          <i class="ti ti-phone-off"></i>
+          <span>Kết thúc</span>
+        </button>
       </div>
+    </div>
+    <!-- Badge trạng thái kết nối -->
+    <div class="conn-status-badge" id="connStatusBadge">
+      <span class="conn-dot"></span>
+      <span id="connStatusText">Đang kết nối...</span>
     </div>
   </div>
 </div>
@@ -1777,27 +1795,37 @@
   // ================================================================
   // HỆ THỐNG GỌI AUDIO/VIDEO (WebRTC + Firebase Signaling)
   // ================================================================
-  const ICE_CONFIG = { iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
-    { urls: 'stun:stun3.l.google.com:19302' },
-    {
-      urls: 'turn:openrelay.metered.ca:80',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-      username: 'openrelayproject',
-      credential: 'openrelayproject'
-    }
-  ]};
+  // TURN server miễn phí đáng tin cậy cho 2 thiết bị khác mạng
+  const ICE_CONFIG = {
+    iceTransportPolicy: 'all',
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      // Metered TURN - miễn phí, ổn định xuyên NAT/firewall
+      {
+        urls: [
+          'turn:a.relay.metered.ca:80',
+          'turn:a.relay.metered.ca:80?transport=tcp',
+          'turn:a.relay.metered.ca:443',
+          'turn:a.relay.metered.ca:443?transport=tcp',
+        ],
+        username: 'e8d9e6fbd41b8e7e0e9bfd71',
+        credential: 'uqKLqRKxFKrfxwOx'
+      },
+      // Fallback TURN Twilio-style
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject'
+      }
+    ]
+  };
 
   let _localStream   = null;   // MediaStream cục bộ
   let _peerConn      = null;   // RTCPeerConnection
@@ -1980,37 +2008,77 @@
   // ── Tạo RTCPeerConnection ─────────────────────────────────
   function createPeer() {
     const pc = new RTCPeerConnection(ICE_CONFIG);
+
+    // Khi nhận track từ đầu kia
     pc.ontrack = e => {
+      console.log('[WebRTC] ontrack:', e.track.kind, e.streams);
       const remVid = document.getElementById('remoteVideo');
       if (remVid && e.streams[0]) {
         remVid.srcObject = e.streams[0];
-        remVid.play().catch(() => {});
+        remVid.play().catch(err => console.warn('[WebRTC] remoteVideo.play():', err));
+        // Ẩn placeholder khi có video thật
+        document.getElementById('remotePlaceholder').style.display = 'none';
       }
     };
+
     pc.onconnectionstatechange = () => {
       console.log('[WebRTC] connectionState:', pc.connectionState);
       if (pc.connectionState === 'connected') {
-        // Gọi _onConnected khi kết nối thực sự thành công (cả 2 phía)
+        _setConnBadge('connected');
         if (_callData && !_callTimerInt) _onConnected(_callData.callId);
       }
+      if (pc.connectionState === 'connecting') _setConnBadge('connecting');
       if (['disconnected','failed','closed'].includes(pc.connectionState)) {
-        _cleanupCall(true);
+        _setConnBadge('failed');
+        setTimeout(() => _cleanupCall(true), 1500);
       }
     };
+
     pc.oniceconnectionstatechange = () => {
       console.log('[WebRTC] iceConnectionState:', pc.iceConnectionState);
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        _setConnBadge('connected');
+      }
+      if (pc.iceConnectionState === 'failed') {
+        // Thử restart ICE khi thất bại
+        console.warn('[WebRTC] ICE failed – restarting...');
+        pc.restartIce?.();
+      }
     };
+
+    // Log ICE gathering
+    pc.onicegatheringstatechange = () => {
+      console.log('[WebRTC] iceGatheringState:', pc.iceGatheringState);
+    };
+
     return pc;
   }
 
   async function startLocalMedia(type) {
     try {
-      const constraints = type === 'video' ? { video: true, audio: true } : { audio: true, video: false };
+      // Yêu cầu quyền camera/mic với constraints phù hợp
+      const constraints = type === 'video'
+        ? { video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }, audio: { echoCancellation: true, noiseSuppression: true } }
+        : { audio: { echoCancellation: true, noiseSuppression: true }, video: false };
+
       _localStream = await navigator.mediaDevices.getUserMedia(constraints);
-      if (type === 'video') document.getElementById('localVideo').srcObject = _localStream;
+
+      if (type === 'video') {
+        const locVid = document.getElementById('localVideo');
+        locVid.srcObject = _localStream;
+        await locVid.play().catch(e => console.warn('localVideo.play:', e));
+        document.getElementById('localVideoWrap').style.display = 'flex';
+      } else {
+        document.getElementById('localVideoWrap').style.display = 'none';
+      }
       return true;
     } catch(e) {
-      showToast('Không thể truy cập microphone/camera! Hãy cấp quyền trong trình duyệt.', 'error');
+      console.error('[WebRTC] getUserMedia error:', e);
+      let msg = 'Không thể truy cập microphone/camera!';
+      if (e.name === 'NotAllowedError')  msg = '⛔ Bạn chưa cấp quyền camera/micro. Hãy bật quyền trong trình duyệt rồi thử lại.';
+      if (e.name === 'NotFoundError')    msg = '🔌 Không tìm thấy camera/microphone trên thiết bị này.';
+      if (e.name === 'NotReadableError') msg = '⚠️ Camera/micro đang được ứng dụng khác sử dụng. Hãy đóng lại.';
+      showToast(msg, 'error');
       return false;
     }
   }
@@ -2023,10 +2091,12 @@
   }
 
   function _onConnected(callId) {
-    if (_callTimerInt) return; // Đã connected rồi, không gọi lại
-    document.getElementById('callStatus').textContent = 'Đang gọi';
-    document.getElementById('callAvatar').style.display = 'none'; // Ẩn avatar khi có video
+    if (_callTimerInt) return;
+    document.getElementById('callStatus').textContent = '🟢 Đang kết nối';
+    // Ẩn avatar placeholder khi đã connected
+    document.getElementById('remotePlaceholder').style.display = 'none';
     document.getElementById('callTimer').classList.remove('hidden');
+    _setConnBadge('connected');
     _callSecs = 0;
     _callTimerInt = setInterval(() => {
       _callSecs++;
@@ -2075,7 +2145,8 @@
     document.getElementById('toggleCamBtn').querySelector('i').className = 'ti ti-video';
     document.getElementById('toggleCamBtn').classList.remove('muted');
     document.getElementById('toggleScreenBtn').querySelector('i').className = 'ti ti-screen-share';
-    document.getElementById('callAvatar').style.display = ''; // Hiện lại avatar
+    // Hiển thị lại placeholder
+    document.getElementById('remotePlaceholder').style.display = 'flex';
 
     hideCallModal();
   }
@@ -2098,6 +2169,8 @@
     const btn = document.getElementById('toggleCamBtn');
     btn.querySelector('i').className = _camOff ? 'ti ti-video-off' : 'ti ti-video';
     btn.classList.toggle('muted', _camOff);
+    // Ẩn/hiện khung local video
+    document.getElementById('localVideoWrap').style.opacity = _camOff ? '0.4' : '1';
     showToast(_camOff ? '📵 Đã tắt camera' : '📷 Đã bật camera', 'info');
   };
 
@@ -2114,6 +2187,7 @@
         }
         document.getElementById('localVideo').srcObject = _localStream;
       }
+      document.getElementById('localVideoWrap').style.display = 'flex';
       document.getElementById('toggleScreenBtn').querySelector('i').className = 'ti ti-screen-share';
       showToast('Đã dừng chia sẻ màn hình.', 'info');
       return;
@@ -2137,19 +2211,30 @@
 
   // ── Helpers hiển thị/ẩn Call Modal ───────────────────────
   function showCallModal(type, avatar, name, status, voiceOnly) {
+    // Cập nhật thông tin
     document.getElementById('callAvatar').textContent = avatar;
     document.getElementById('callName').textContent   = name;
+    document.getElementById('callPeerName').textContent = name;
     document.getElementById('callStatus').textContent = status;
     document.getElementById('callTimer').classList.add('hidden');
     document.getElementById('callTimerDisplay').textContent = '00:00';
+
     const modal = document.getElementById('callModal');
-    modal.classList.remove('hidden');
+    modal.classList.remove('hidden', 'voice-only');
     if (voiceOnly) modal.classList.add('voice-only');
-    else modal.classList.remove('voice-only');
-    // Ẩn remote video ban đầu
+
+    // Badge trạng thái
+    _setConnBadge('connecting');
+
+    // Reset remote video
     const remVid = document.getElementById('remoteVideo');
     if (remVid) remVid.srcObject = null;
+    document.getElementById('remotePlaceholder').style.display = 'flex';
+
+    // Ẩn local video nếu chỉ gọi thoại
+    document.getElementById('localVideoWrap').style.display = voiceOnly ? 'none' : 'flex';
   }
+
   function hideCallModal() {
     document.getElementById('callModal').classList.add('hidden');
     document.getElementById('incomingCall').classList.add('hidden');
@@ -2157,6 +2242,16 @@
     const remVid = document.getElementById('remoteVideo');
     if (locVid) locVid.srcObject = null;
     if (remVid) remVid.srcObject = null;
+    document.getElementById('remotePlaceholder').style.display = 'flex';
+  }
+
+  function _setConnBadge(state) {
+    const badge = document.getElementById('connStatusBadge');
+    const text  = document.getElementById('connStatusText');
+    if (!badge) return;
+    badge.className = 'conn-status-badge ' + state;
+    const labels = { connecting: 'Đang kết nối...', connected: 'Đã kết nối', failed: 'Mất kết nối' };
+    text.textContent = labels[state] || state;
   }
 
   boot();

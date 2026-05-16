@@ -440,116 +440,270 @@
 }
 .sticker-item:hover { background: #f0f4ff; transform: scale(1.2); }
 
-/* ===== VIDEO CALL MODAL ===== */
+/* ===== VIDEO CALL MODAL – Redesign 2024 ===== */
 .call-modal {
   position: fixed; inset: 0;
-  background: #000;
+  background: #0d0d1a;
   z-index: 1000;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: stretch;
 }
 .call-container {
   position: relative;
   width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
 }
+
+/* Remote video – toàn màn hình */
 #remoteVideo {
+  position: absolute; inset: 0;
   width: 100%; height: 100%;
   object-fit: cover;
-  background: #1a1a2e;
+  background: #0d0d1a;
+  display: block;
 }
-#localVideo {
+
+/* Placeholder khi chưa có remote video */
+.remote-placeholder {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px;
+  background: linear-gradient(160deg, #12122a 0%, #0d0d1a 100%);
+  z-index: 1;
+}
+.remote-placeholder .call-avatar {
+  width: 100px; height: 100px;
+  font-size: 52px;
+  background: rgba(255,255,255,0.08);
+  border: 3px solid rgba(255,255,255,0.2);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  animation: avatarPulse 2s ease-in-out infinite;
+}
+@keyframes avatarPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(0,104,255,0.4); }
+  50%      { box-shadow: 0 0 0 20px rgba(0,104,255,0); }
+}
+.remote-placeholder .call-name {
+  font-size: 20px; font-weight: 800;
+  color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+
+/* Local video – góc trên phải, có thể thu nhỏ */
+.local-video-wrap {
   position: absolute;
   top: 16px; right: 16px;
-  width: 160px; height: 120px;
-  border-radius: 14px;
-  object-fit: cover;
-  border: 3px solid white;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  background: #2d2d44;
+  width: 140px; height: 105px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2.5px solid rgba(255,255,255,0.6);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  background: #1a1a2e;
+  z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  cursor: move;
+  transition: border-color 0.2s;
 }
+.local-video-wrap:hover { border-color: #0068ff; }
+.local-video-wrap video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scaleX(-1); /* mirror effect */
+}
+.local-video-label {
+  position: absolute; bottom: 6px; left: 8px;
+  font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.85);
+  background: rgba(0,0,0,0.4); padding: 2px 7px; border-radius: 10px;
+  pointer-events: none;
+}
+
+/* Overlay gradient + controls */
 .call-overlay {
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
   justify-content: space-between;
-  padding: 40px 24px;
-  background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.6) 100%);
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(0,0,0,0.55) 0%,
+    transparent 35%,
+    transparent 60%,
+    rgba(0,0,0,0.7) 100%
+  );
 }
-.call-info { text-align: center; color: white; }
-.call-avatar {
-  width: 80px; height: 80px;
-  background: rgba(255,255,255,0.15);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 40px;
-  margin: 0 auto 12px;
-  border: 3px solid rgba(255,255,255,0.3);
-}
-.call-name { font-size: 24px; font-weight: 800; }
-.call-status { font-size: 14px; opacity: 0.8; margin-top: 4px; }
 
+/* Info bar – trên cùng */
+.call-info-bar {
+  padding: 24px 20px 0;
+  text-align: center;
+  color: white;
+  pointer-events: auto;
+}
+.call-peer-name {
+  font-size: 22px; font-weight: 800;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+}
+.call-status {
+  font-size: 14px; opacity: 0.85;
+  margin-top: 4px;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+}
+
+/* Controls – dưới cùng */
 .call-controls {
-  display: flex; align-items: center; justify-content: center; gap: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 0 20px 32px;
+  pointer-events: auto;
+  flex-wrap: wrap;
+}
+.call-ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(16px);
+  padding: 10px 16px;
+  border-radius: 50px;
+  border: 1px solid rgba(255,255,255,0.12);
 }
 .call-btn {
-  width: 60px; height: 60px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 5px;
+  width: 58px; height: 58px;
   border-radius: 50%; border: none;
-  background: rgba(255,255,255,0.2);
-  color: white; font-size: 24px;
+  background: rgba(255,255,255,0.18);
+  color: white; font-size: 22px;
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  flex-direction: column;
-  gap: 4px;
   transition: background 0.15s, transform 0.15s;
   backdrop-filter: blur(10px);
+  flex-shrink: 0;
 }
-.call-btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
-.call-btn.danger { background: #e53935; }
+.call-btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.06); }
+.call-btn:active { transform: scale(0.94); }
+.call-btn span { font-size: 10px; font-weight: 600; line-height: 1; }
+.call-btn.danger { background: #e53935; box-shadow: 0 4px 16px rgba(229,57,53,0.5); }
 .call-btn.danger:hover { background: #c62828; }
 .call-btn.success { background: #2e7d32; }
-.call-btn.muted { background: rgba(229,57,53,0.4); }
-.call-btn span { font-size: 11px; font-weight: 600; }
+.call-btn.muted { background: rgba(229,57,53,0.5); }
+.end-call-btn {
+  width: 64px; height: 64px;
+  font-size: 26px;
+  box-shadow: 0 6px 20px rgba(229,57,53,0.6);
+}
 
+/* Trạng thái kết nối badge */
+.conn-status-badge {
+  position: absolute;
+  top: 14px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: white; font-size: 12px; font-weight: 600;
+  padding: 5px 12px; border-radius: 20px;
+  z-index: 20;
+  transition: all 0.3s;
+}
+.conn-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%; flex-shrink: 0;
+}
+.conn-status-badge.connecting .conn-dot {
+  background: #ffc107;
+  animation: badgeBlink 0.9s ease-in-out infinite;
+}
+.conn-status-badge.connected .conn-dot { background: #4caf50; }
+.conn-status-badge.failed .conn-dot { background: #e53935; }
+@keyframes badgeBlink {
+  0%,100% { opacity: 1; } 50% { opacity: 0.3; }
+}
+
+/* Chế độ chỉ thoại */
 .call-modal.voice-only #remoteVideo { display: none; }
-.call-modal.voice-only #localVideo { display: none; }
-.call-modal.voice-only .call-container { background: linear-gradient(135deg, #0068ff, #003d99); }
+.call-modal.voice-only .remote-placeholder {
+  background: linear-gradient(160deg, #003d99, #0052cc);
+}
+.call-modal.voice-only .local-video-wrap { display: none !important; }
 
 /* INCOMING CALL */
 .incoming-call {
   position: fixed;
   top: 20px; right: 20px;
   background: white;
-  border-radius: 20px;
-  padding: 20px 24px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+  border-radius: 24px;
+  padding: 22px 24px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06);
   z-index: 1001;
   text-align: center;
-  min-width: 240px;
-  animation: slideIn 0.3s ease;
+  min-width: 250px; max-width: 300px;
+  animation: slideIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
 }
 @keyframes slideIn {
-  from { transform: translateX(120%); }
-  to { transform: translateX(0); }
+  from { transform: translateX(130%) scale(0.9); opacity: 0; }
+  to   { transform: translateX(0) scale(1); opacity: 1; }
 }
 .incoming-avatar {
-  width: 60px; height: 60px;
-  background: #eaf3ff;
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, #e0eeff, #c7d9ff);
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 30px;
-  margin: 0 auto 10px;
+  font-size: 32px; margin: 0 auto 10px;
+  animation: avatarPulse 2s ease-in-out infinite;
 }
-.incoming-name { font-weight: 800; font-size: 16px; }
-.incoming-type { font-size: 13px; color: #6b7280; margin-top: 3px; }
-.incoming-btns { display: flex; gap: 12px; margin-top: 16px; justify-content: center; }
+.incoming-name { font-weight: 800; font-size: 17px; color: #172033; }
+.incoming-type { font-size: 13px; color: #6b7280; margin-top: 4px; }
+.incoming-btns {
+  display: flex; gap: 12px;
+  margin-top: 18px; justify-content: center;
+}
 .incoming-btns .call-btn {
   width: auto; height: auto;
-  border-radius: 12px;
-  padding: 10px 18px;
-  font-size: 14px;
-  gap: 6px;
+  border-radius: 14px;
+  padding: 11px 20px;
+  font-size: 14px; gap: 7px;
+  flex-direction: row;
   background: #eaf3ff; color: #0068ff;
 }
-.incoming-btns .call-btn.danger { background: #ffeaea; color: #e53935; }
-.incoming-btns .call-btn.success { background: #e8f5e9; color: #2e7d32; }
+.incoming-btns .call-btn.danger { background: #ffeaea; color: #e53935; box-shadow: none; }
+.incoming-btns .call-btn.success { background: #e8f5e9; color: #2e7d32; box-shadow: none; }
+
+/* ===== RESPONSIVE CALL MODAL ===== */
+@media (max-width: 680px) {
+  .local-video-wrap {
+    width: 100px; height: 76px;
+    top: 12px; right: 12px;
+    border-radius: 12px;
+  }
+  .call-peer-name { font-size: 18px; }
+  .call-controls { gap: 14px; padding: 0 12px 24px; }
+  .call-ctrl-group { gap: 8px; padding: 8px 12px; }
+  .call-btn { width: 50px; height: 50px; font-size: 20px; }
+  .end-call-btn { width: 56px; height: 56px; font-size: 24px; }
+  .incoming-call {
+    top: auto; bottom: 0; right: 0; left: 0;
+    border-radius: 24px 24px 0 0;
+    min-width: unset;
+    max-width: unset;
+    width: 100%;
+    animation: slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+}
+@media (max-width: 400px) {
+  .call-ctrl-group { gap: 6px; padding: 7px 10px; }
+  .call-btn { width: 44px; height: 44px; font-size: 18px; }
+  .call-btn span { display: none; }
+  .end-call-btn { width: 52px; height: 52px; }
+}
 
 /* ===== RIGHT PANEL ===== */
 .right-panel {
