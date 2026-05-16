@@ -1094,6 +1094,10 @@
     let firstLoad = true;
     _msgUnsubscribe = DB.listenMessages(convId, msg => {
       if (firstLoad) return; // Skip initial load (renderMessages handles it)
+      
+      // THÊM DÒNG NÀY: Kiểm tra xem tin nhắn đã được vẽ lên giao diện chưa bằng data-id
+      if (area.querySelector(`.msg-row[data-id="${msg.id}"]`)) return;
+
       const noMsg = area.querySelector('.no-msgs');
       if (noMsg) noMsg.remove();
       area.appendChild(createMsgEl(msg));
@@ -1165,12 +1169,6 @@
         lastTime: Date.now()
       });
     }
-
-    const area = document.getElementById('messagesArea');
-    const noMsg = area.querySelector('.no-msgs');
-    if (noMsg) noMsg.remove();
-    area.appendChild(createMsgEl(msg));
-    area.scrollTop = area.scrollHeight;
   }
 
   document.getElementById('sendBtn').onclick = doSend;
