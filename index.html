@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="chat.css" />
   <style>
-    /* Bổ sung giao diện Lưới Video cho Gọi Nhóm */
     .video-grid {
       position: absolute; inset: 0;
       display: flex; flex-wrap: wrap; align-content: center; justify-content: center;
@@ -20,11 +19,137 @@
       border: 1px solid rgba(255,255,255,0.1);
     }
     .call-modal.voice-only .video-grid { display: none; }
+
+    /* ===== FIREBASE LOADING OVERLAY ===== */
+    #fbLoading {
+      position: fixed; inset: 0; z-index: 9999;
+      background: linear-gradient(135deg, #0068ff, #004bb5);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 18px; color: white;
+    }
+    #fbLoading .fb-logo { font-size: 52px; }
+    #fbLoading h2 { font-size: 22px; font-weight: 800; }
+    #fbLoading p { font-size: 14px; opacity: 0.8; }
+    .fb-spinner {
+      width: 40px; height: 40px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== SETUP MODAL ===== */
+    #setupModal {
+      position: fixed; inset: 0; z-index: 9998;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #setupModal.hidden { display: none; }
+    .setup-box {
+      background: white; border-radius: 24px;
+      padding: 32px; max-width: 500px; width: 100%;
+      box-shadow: 0 24px 64px rgba(0,82,204,0.25);
+    }
+    .setup-box h2 { font-size: 22px; font-weight: 800; color: #172033; margin-bottom: 8px; }
+    .setup-box p { font-size: 14px; color: #6b7280; line-height: 1.6; margin-bottom: 20px; }
+    .setup-steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .setup-step {
+      display: flex; align-items: flex-start; gap: 12px;
+      background: #f3f7ff; border-radius: 12px; padding: 12px 14px;
+    }
+    .setup-step .step-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: #0068ff; color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; flex-shrink: 0;
+    }
+    .setup-step p { margin: 0; font-size: 13px; color: #172033; }
+    .setup-step code {
+      background: #e0eeff; padding: 2px 7px; border-radius: 6px;
+      font-size: 12px; font-family: monospace; color: #0052cc;
+    }
+    .setup-input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+    .setup-input-group label { font-size: 13px; font-weight: 700; color: #172033; }
+    .setup-input-group textarea {
+      width: 100%; min-height: 100px;
+      border: 1.5px solid #dce5f5; border-radius: 12px;
+      padding: 10px 14px; font-size: 12px; font-family: monospace;
+      outline: none; resize: vertical;
+      background: #f8fbff; color: #172033;
+      transition: border-color 0.2s;
+    }
+    .setup-input-group textarea:focus { border-color: #0068ff; box-shadow: 0 0 0 3px rgba(0,104,255,0.1); }
+    .setup-err { color: #e53935; font-size: 13px; font-weight: 600; min-height: 18px; }
+    .setup-btn {
+      width: 100%; height: 48px; border: none;
+      border-radius: 14px; background: #0068ff; color: white;
+      font-size: 15px; font-weight: 800; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background 0.2s;
+    }
+    .setup-btn:hover { background: #0052cc; }
+    .setup-demo-note {
+      margin-top: 14px; padding: 10px 14px;
+      background: #fffbea; border: 1px solid #fde68a;
+      border-radius: 10px; font-size: 12px; color: #92400e;
+      line-height: 1.6;
+    }
   </style>
 </head>
 <body>
 
-<div id="authScreen" class="auth-screen">
+<!-- Loading Screen -->
+<div id="fbLoading">
+  <div class="fb-logo">🔥</div>
+  <h2>ChatTeam CNTT1808</h2>
+  <p>Đang kết nối realtime...</p>
+  <div class="fb-spinner"></div>
+</div>
+
+<!-- Firebase Setup Modal -->
+<div id="setupModal" class="hidden">
+  <div class="setup-box">
+    <h2>🔥 Kết nối Firebase</h2>
+    <p>Để mọi người thật sự thấy nhau từ các máy tính khác nhau, bạn cần kết nối Firebase Realtime Database (miễn phí).</p>
+    <div class="setup-steps">
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <p>Truy cập <strong>console.firebase.google.com</strong> → Tạo project mới → Vào <strong>Realtime Database</strong> → Tạo database</p>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <p>Vào <strong>Rules</strong> tab → Paste: <code>{ "rules": { ".read": true, ".write": true } }</code> → Publish</p>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">3</div>
+        <p>Vào <strong>Project Settings</strong> → <strong>Your apps</strong> → Thêm Web App → Copy <strong>firebaseConfig</strong> object</p>
+      </div>
+    </div>
+    <div class="setup-input-group">
+      <label>Paste firebaseConfig JSON vào đây:</label>
+      <textarea id="fbConfigInput" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "your-project.firebaseapp.com",
+  "databaseURL": "https://your-project-default-rtdb.firebaseio.com",
+  "projectId": "your-project",
+  "storageBucket": "your-project.appspot.com",
+  "messagingSenderId": "123...",
+  "appId": "1:123..."
+}'></textarea>
+    </div>
+    <div class="setup-err" id="setupErr"></div>
+    <button class="setup-btn" id="setupSaveBtn"><i class="ti ti-plug-connected"></i>Kết nối Firebase</button>
+    <div class="setup-demo-note">
+      💡 <strong>Lưu ý:</strong> Firebase Realtime Database miễn phí cho đến 1GB dữ liệu và 10GB/tháng bandwidth. Đủ dùng cho nhóm lớp!
+    </div>
+  </div>
+</div>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen" class="auth-screen hidden">
   <main class="app">
     <section class="intro">
       <div class="logo">
@@ -119,8 +244,8 @@
   </main>
 </div>
 
+<!-- CHAT SCREEN -->
 <div id="chatScreen" class="chat-screen hidden">
-
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-user" id="sidebarUser">
@@ -130,7 +255,7 @@
         </div>
         <div class="user-info">
           <span class="user-name" id="myName">Người dùng</span>
-          <span class="user-status">Đang hoạt động</span>
+          <span class="user-status">🟢 Đang hoạt động</span>
         </div>
       </div>
       <div class="sidebar-actions">
@@ -154,8 +279,7 @@
       <button class="s-tab" data-tab="groups"><i class="ti ti-users-group"></i><span>Nhóm</span></button>
     </div>
 
-    <div class="conversation-list" id="convList">
-      </div>
+    <div class="conversation-list" id="convList"></div>
   </aside>
 
   <main class="chat-main">
@@ -182,8 +306,7 @@
         </div>
       </div>
 
-      <div class="messages-area" id="messagesArea">
-      </div>
+      <div class="messages-area" id="messagesArea"></div>
 
       <div class="input-area">
         <div class="input-tools">
@@ -211,6 +334,7 @@
   </div>
 </div>
 
+<!-- STICKER PICKER -->
 <div class="sticker-picker hidden" id="stickerPicker">
   <div class="sticker-header">
     <span>Sticker & Emoji</span>
@@ -226,10 +350,10 @@
   <div class="sticker-grid" id="stickerGrid"></div>
 </div>
 
+<!-- CALL MODAL -->
 <div class="call-modal hidden" id="callModal">
   <div class="call-container">
-    <div id="videoGrid" class="video-grid">
-      </div>
+    <div id="videoGrid" class="video-grid"></div>
     <video id="localVideo" autoplay playsinline muted></video>
     <div class="call-overlay">
       <div class="call-info">
@@ -251,6 +375,7 @@
   </div>
 </div>
 
+<!-- INCOMING CALL -->
 <div class="incoming-call hidden" id="incomingCall">
   <div class="incoming-inner">
     <div class="avatar incoming-avatar" id="incomingAvatar">?</div>
@@ -263,6 +388,7 @@
   </div>
 </div>
 
+<!-- NEW GROUP MODAL -->
 <div class="modal-overlay hidden" id="newGroupModal">
   <div class="modal-box">
     <div class="modal-header">
@@ -281,6 +407,7 @@
   </div>
 </div>
 
+<!-- UNFRIEND MODAL -->
 <div class="modal-overlay hidden" id="unfriendModal">
   <div class="modal-box" style="max-width:380px;">
     <div class="modal-header" style="border-bottom:2px solid #ffeaea;">
@@ -314,7 +441,7 @@
 
 <div class="toast hidden" id="toast"></div>
 
-<!-- ===== BACKUP MODAL ===== -->
+<!-- BACKUP MODAL -->
 <div class="modal-overlay hidden" id="backupModal">
   <div class="modal-box backup-modal-box">
     <div class="modal-header">
@@ -337,12 +464,12 @@
     <div id="backupUserList" class="backup-user-list"></div>
     <div class="backup-footer">
       <i class="ti ti-refresh" style="font-size:14px;color:#9ca3af;"></i>
-      <span id="backupLastRefresh">Tự động cập nhật khi có người đăng ký mới</span>
+      <span id="backupLastRefresh">Realtime từ Firebase</span>
     </div>
   </div>
 </div>
 
-<!-- ===== NEW USER NOTIFICATION ===== -->
+<!-- NEW USER NOTIFICATION -->
 <div class="new-user-toast hidden" id="newUserToast">
   <div class="new-user-toast-inner">
     <div class="new-user-toast-icon"><i class="ti ti-user-plus"></i></div>
@@ -354,249 +481,319 @@
   </div>
 </div>
 
+<!-- Firebase SDK -->
 <script type="module">
+  // ================================================================
+  // FIREBASE CONFIG & INIT
+  // ================================================================
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import {
+    getDatabase, ref, set, get, push, update, remove,
+    onValue, onChildAdded, off, serverTimestamp, onDisconnect
+  } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
   window.APP = {};
   const APP = window.APP;
 
-  // BroadcastChannel for same-browser multi-tab realtime
-  let bc;
-  try { bc = new BroadcastChannel('cntt1808_chat'); } catch(e) { bc = { postMessage: () => {}, addEventListener: () => {} }; }
+  const STORAGE_KEY_CONFIG = 'cntt1808_firebase_config';
 
-  // ===== DATA STORE =====
-  function loadUsers() {
-    const d = localStorage.getItem('cntt1808_users');
-    if (d) return JSON.parse(d);
-    const defaults = [
-      { id: 'u1', name: 'Lê Đức Hà', phone: '0901234567', password: '123456', avatar: '🧑‍💻', status: 'offline', registeredAt: Date.now() - 9e6 },
-      { id: 'u2', name: 'CNTT1808 Admin', phone: '0912345678', password: '123456', avatar: '👨‍🏫', status: 'offline', registeredAt: Date.now() - 8e6 },
-      { id: 'u3', name: 'Nguyễn Thị Mai', phone: '0923456789', password: '123456', avatar: '👩‍🎓', status: 'offline', registeredAt: Date.now() - 7e6 },
-      { id: 'u4', name: 'Trần Văn Bình', phone: '0934567890', password: '123456', avatar: '👦', status: 'offline', registeredAt: Date.now() - 6e6 },
-      { id: 'u5', name: 'Phạm Thu Hà', phone: '0945678901', password: '123456', avatar: '👩', status: 'offline', registeredAt: Date.now() - 5e6 },
-    ];
-    localStorage.setItem('cntt1808_users', JSON.stringify(defaults));
-    return defaults;
-  }
+  let db = null; // Firebase database instance
 
-  function saveUsers(users) {
-    localStorage.setItem('cntt1808_users', JSON.stringify(users));
-  }
-
-  // ===== HEARTBEAT ONLINE SYSTEM =====
-  // Mỗi user đang mở app ghi timestamp vào localStorage mỗi 20s.
-  // Nếu quá 45s không ghi => coi là offline.
-  const HB_KEY    = id => 'cntt1808_hb_' + id;
-  const HB_WRITE  = 20000;  // ghi heartbeat mỗi 20s
-  const HB_EXPIRE = 45000;  // quá 45s = offline
-  let _hbTimer = null;
-
-  function hbWrite(userId) {
-    localStorage.setItem(HB_KEY(userId), String(Date.now()));
-  }
-  function hbClear(userId) {
-    localStorage.removeItem(HB_KEY(userId));
-  }
-  function isOnline(userId) {
-    const ts = localStorage.getItem(HB_KEY(userId));
-    if (!ts) return false;
-    return (Date.now() - Number(ts)) < HB_EXPIRE;
-  }
-
-  function startHeartbeat(userId) {
-    stopHeartbeat();
-    hbWrite(userId);
-    _hbTimer = setInterval(() => hbWrite(userId), HB_WRITE);
-  }
-  function stopHeartbeat() {
-    if (_hbTimer) { clearInterval(_hbTimer); _hbTimer = null; }
-  }
-
-  // Đóng tab/trình duyệt → xóa heartbeat ngay lập tức
-  window.addEventListener('beforeunload', () => {
-    if (APP.currentUser) hbClear(APP.currentUser.id);
-  });
-  // Quay lại tab → ghi lại ngay
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && APP.currentUser) hbWrite(APP.currentUser.id);
-  });
-
-  // ===== NEW USER DETECTION & POLLING =====
-  // Snapshot số lượng users ngay từ đầu, TRƯỚC khi enterChat
-  let _knownUserIds = new Set((JSON.parse(localStorage.getItem('cntt1808_users') || '[]')).map(u => u.id));
-
-  function checkForNewUsers() {
+  // ================================================================
+  // SETUP FLOW
+  // ================================================================
+  function getSavedConfig() {
     try {
-      const users = JSON.parse(localStorage.getItem('cntt1808_users') || '[]');
-      users.forEach(u => {
-        if (!_knownUserIds.has(u.id)) {
-          _knownUserIds.add(u.id);
-          // Chỉ hiện toast nếu đang ở chat screen (đã đăng nhập)
-          if (APP.currentUser && u.id !== APP.currentUser.id) {
-            showNewUserNotification(u);
-            try { bc.postMessage({ type: 'new_user', user: u }); } catch(e) {}
+      const c = localStorage.getItem(STORAGE_KEY_CONFIG);
+      return c ? JSON.parse(c) : null;
+    } catch(e) { return null; }
+  }
+
+  async function tryInitFirebase(config) {
+    try {
+      const app = initializeApp(config, 'cntt1808_' + Date.now());
+      db = getDatabase(app);
+      // Test connection
+      const testRef = ref(db, '.info/connected');
+      return new Promise((resolve, reject) => {
+        const unsubscribe = onValue(testRef, (snap) => {
+          unsubscribe();
+          if (snap.val() === true) {
+            resolve(true);
+          } else {
+            // Still connected, just offline mode
+            resolve(true);
           }
-          // Luôn cập nhật backup modal nếu đang mở
-          const backupModal = document.getElementById('backupModal');
-          if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
+        }, (err) => {
+          reject(err);
+        });
+        setTimeout(() => resolve(true), 3000); // timeout fallback
+      });
+    } catch(e) {
+      throw e;
+    }
+  }
+
+  async function boot() {
+    const savedConfig = getSavedConfig();
+    if (savedConfig) {
+      try {
+        await tryInitFirebase(savedConfig);
+        hideFbLoading();
+        startApp();
+        return;
+      } catch(e) {
+        localStorage.removeItem(STORAGE_KEY_CONFIG);
+      }
+    }
+    hideFbLoading();
+    showSetupModal();
+  }
+
+  function hideFbLoading() {
+    document.getElementById('fbLoading').style.display = 'none';
+  }
+
+  function showSetupModal() {
+    document.getElementById('setupModal').classList.remove('hidden');
+  }
+
+  document.getElementById('setupSaveBtn').onclick = async () => {
+    const raw = document.getElementById('fbConfigInput').value.trim();
+    const errEl = document.getElementById('setupErr');
+    errEl.textContent = '';
+    if (!raw) { errEl.textContent = 'Vui lòng paste firebaseConfig!'; return; }
+    
+    let config;
+    try {
+      // Try to parse as JSON, handle both object literal and JSON
+      const cleaned = raw.replace(/^(const|let|var)\s+\w+\s*=\s*/, '').replace(/;?\s*$/, '');
+      config = JSON.parse(cleaned);
+    } catch(e) {
+      // Try eval as last resort for object literals
+      try {
+        config = Function('"use strict"; return (' + raw + ')')();
+      } catch(e2) {
+        errEl.textContent = 'JSON không hợp lệ. Hãy copy đúng object firebaseConfig!';
+        return;
+      }
+    }
+
+    if (!config.databaseURL) {
+      errEl.textContent = 'Thiếu databaseURL! Hãy bật Realtime Database trong Firebase Console.';
+      return;
+    }
+
+    const btn = document.getElementById('setupSaveBtn');
+    btn.textContent = 'Đang kết nối...';
+    btn.disabled = true;
+
+    try {
+      await tryInitFirebase(config);
+      localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(config));
+      document.getElementById('setupModal').classList.add('hidden');
+      startApp();
+    } catch(e) {
+      errEl.textContent = 'Kết nối thất bại: ' + (e.message || 'Lỗi không xác định');
+      btn.textContent = 'Kết nối Firebase';
+      btn.disabled = false;
+    }
+  };
+
+  // ================================================================
+  // DATABASE HELPERS (Firebase Realtime DB)
+  // ================================================================
+  const DB = {
+    // USERS
+    async getUsers() {
+      const snap = await get(ref(db, 'users'));
+      if (!snap.exists()) return [];
+      return Object.values(snap.val());
+    },
+    async saveUser(user) {
+      await set(ref(db, 'users/' + user.id), user);
+    },
+    async updateUser(userId, data) {
+      await update(ref(db, 'users/' + userId), data);
+    },
+    listenUsers(cb) {
+      onValue(ref(db, 'users'), snap => {
+        cb(snap.exists() ? Object.values(snap.val()) : []);
+      });
+    },
+
+    // PRESENCE (online/offline)
+    setPresence(userId) {
+      const presRef = ref(db, 'presence/' + userId);
+      const connRef = ref(db, '.info/connected');
+      onValue(connRef, snap => {
+        if (snap.val() === true) {
+          set(presRef, { online: true, lastSeen: Date.now() });
+          onDisconnect(presRef).set({ online: false, lastSeen: Date.now() });
         }
       });
-    } catch(e) {}
-  }
+    },
+    listenPresence(cb) {
+      onValue(ref(db, 'presence'), snap => {
+        const presenceMap = {};
+        if (snap.exists()) {
+          snap.forEach(child => {
+            presenceMap[child.key] = child.val();
+          });
+        }
+        cb(presenceMap);
+      });
+    },
+    async isOnline(userId) {
+      const snap = await get(ref(db, 'presence/' + userId));
+      if (!snap.exists()) return false;
+      const d = snap.val();
+      return d.online === true && (Date.now() - (d.lastSeen || 0)) < 60000;
+    },
 
-  // Polling tổng hợp: phát hiện user mới + cập nhật trạng thái online mỗi 3s
-  function startPolling() {
-    setInterval(() => {
-      checkForNewUsers();
-      // Cập nhật danh sách chat nếu đang ở chat screen
-      if (APP.currentUser) {
-        const searchVal = document.getElementById('searchInput')?.value || '';
-        renderConvList(searchVal);
-      }
-      // Cập nhật backup modal nếu đang mở
-      const backupModal = document.getElementById('backupModal');
-      if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
-    }, 3000);
-  }
+    // MESSAGES
+    async getMessages(convId) {
+      const snap = await get(ref(db, 'messages/' + convId));
+      if (!snap.exists()) return [];
+      return Object.values(snap.val()).sort((a, b) => a.time - b.time);
+    },
+    async saveMessage(convId, msg) {
+      await push(ref(db, 'messages/' + convId), msg);
+    },
+    listenMessages(convId, cb) {
+      return onChildAdded(ref(db, 'messages/' + convId), snap => {
+        cb(snap.val());
+      });
+    },
+    stopListenMessages(convId) {
+      off(ref(db, 'messages/' + convId));
+    },
 
-  // Gọi startPolling ngay từ đầu (trước cả khi đăng nhập)
-  startPolling();
+    // FRIENDS
+    async getFriends(userId) {
+      const snap = await get(ref(db, 'friends/' + userId));
+      if (!snap.exists()) return [];
+      return Object.keys(snap.val());
+    },
+    async addFriend(userId1, userId2) {
+      await update(ref(db, 'friends/' + userId1), { [userId2]: true });
+      await update(ref(db, 'friends/' + userId2), { [userId1]: true });
+    },
+    async removeFriend(userId1, userId2) {
+      await remove(ref(db, 'friends/' + userId1 + '/' + userId2));
+      await remove(ref(db, 'friends/' + userId2 + '/' + userId1));
+    },
+    listenFriends(userId, cb) {
+      onValue(ref(db, 'friends/' + userId), snap => {
+        cb(snap.exists() ? Object.keys(snap.val()) : []);
+      });
+    },
 
-  function loadMessages(convId) {
-    const d = localStorage.getItem('cntt1808_msgs_' + convId);
-    return d ? JSON.parse(d) : [];
-  }
+    // FRIEND REQUESTS
+    async getRequests() {
+      const snap = await get(ref(db, 'friendRequests'));
+      if (!snap.exists()) return [];
+      return Object.entries(snap.val()).map(([k, v]) => ({ id: k, ...v }));
+    },
+    async sendRequest(fromId, toId) {
+      const existing = await this.getRequests();
+      const dup = existing.find(r => r.fromId === fromId && r.toId === toId && r.status === 'pending');
+      if (dup) return;
+      const newRef = push(ref(db, 'friendRequests'));
+      await set(newRef, { fromId, toId, status: 'pending', time: Date.now() });
+    },
+    async updateRequest(reqId, status) {
+      await update(ref(db, 'friendRequests/' + reqId), { status });
+    },
+    async deleteRequest(reqId) {
+      await remove(ref(db, 'friendRequests/' + reqId));
+    },
+    listenRequests(cb) {
+      onValue(ref(db, 'friendRequests'), snap => {
+        cb(snap.exists() ? Object.entries(snap.val()).map(([k, v]) => ({ id: k, ...v })) : []);
+      });
+    },
 
-  function saveMessage(convId, msg) {
-    const msgs = loadMessages(convId);
-    msgs.push(msg);
-    localStorage.setItem('cntt1808_msgs_' + convId, JSON.stringify(msgs));
-    try { bc.postMessage({ type: 'new_message', convId, msg }); } catch(e) {}
-    return msg;
-  }
-
-  function loadGroups() {
-    const d = localStorage.getItem('cntt1808_groups');
-    return d ? JSON.parse(d) : [];
-  }
-
-  function saveGroups(groups) { localStorage.setItem('cntt1808_groups', JSON.stringify(groups)); }
-
-  // ===== FRIEND SYSTEM =====
-  function loadFriends(uid) {
-    const d = localStorage.getItem('cntt1808_friends_' + uid);
-    return d ? JSON.parse(d) : [];
-  }
-  function saveFriends(uid, list) {
-    localStorage.setItem('cntt1808_friends_' + uid, JSON.stringify(list));
-    try { bc.postMessage({ type: 'friend_update' }); } catch(e) {}
-  }
-  function loadRequests() {
-    const d = localStorage.getItem('cntt1808_freq');
-    return d ? JSON.parse(d) : [];
-  }
-  function saveRequests(reqs) {
-    localStorage.setItem('cntt1808_freq', JSON.stringify(reqs));
-    try { bc.postMessage({ type: 'friend_update' }); } catch(e) {}
-  }
-  function isFriend(uid) { return loadFriends(APP.currentUser.id).includes(uid); }
-  function hasPendingRequestTo(uid) {
-    return loadRequests().some(r => r.fromId === APP.currentUser.id && r.toId === uid && r.status === 'pending');
-  }
-  function hasPendingRequestFrom(uid) {
-    return loadRequests().some(r => r.fromId === uid && r.toId === APP.currentUser.id && r.status === 'pending');
-  }
-  function countPendingIncoming() {
-    return loadRequests().filter(r => r.toId === APP.currentUser.id && r.status === 'pending').length;
-  }
-  
-  function getConvId(uid1, uid2) {
-    return [uid1, uid2].sort().join('_');
-  }
-
-  window.handleAddFriend = function(toId) {
-    const reqs = loadRequests();
-    if (reqs.some(r => r.fromId === APP.currentUser.id && r.toId === toId && r.status === 'pending')) return;
-    reqs.push({ id: 'fr_' + Date.now(), fromId: APP.currentUser.id, toId, status: 'pending', time: Date.now() });
-    saveRequests(reqs);
-    showToast('Đã gửi lời mời kết bạn!', 'success');
-    renderConvList(document.getElementById('searchInput').value);
+    // GROUPS
+    async getGroups() {
+      const snap = await get(ref(db, 'groups'));
+      if (!snap.exists()) return [];
+      return Object.values(snap.val());
+    },
+    async saveGroup(group) {
+      await set(ref(db, 'groups/' + group.id), group);
+    },
+    async updateGroup(groupId, data) {
+      await update(ref(db, 'groups/' + groupId), data);
+    },
+    listenGroups(cb) {
+      onValue(ref(db, 'groups'), snap => {
+        cb(snap.exists() ? Object.values(snap.val()) : []);
+      });
+    },
   };
 
-  window.handleAccept = function(fromId) {
-    const reqs = loadRequests();
-    const req = reqs.find(r => r.fromId === fromId && r.toId === APP.currentUser.id && r.status === 'pending');
-    if (!req) return;
-    req.status = 'accepted';
-    saveRequests(reqs);
-
-    const myFriends = loadFriends(APP.currentUser.id);
-    if (!myFriends.includes(fromId)) { myFriends.push(fromId); saveFriends(APP.currentUser.id, myFriends); }
-    const theirFriends = loadFriends(fromId);
-    if (!theirFriends.includes(APP.currentUser.id)) { theirFriends.push(APP.currentUser.id); saveFriends(fromId, theirFriends); }
-    
-    const users = loadUsers();
-    const u = users.find(u => u.id === fromId);
-    showToast(`✅ Đã chấp nhận kết bạn với ${u?.name || ''}!`, 'success');
-    renderConvList(document.getElementById('searchInput').value);
-  };
-
-  window.handleReject = function(fromId) {
-    const reqs = loadRequests();
-    const index = reqs.findIndex(r => r.fromId === fromId && r.toId === APP.currentUser.id && r.status === 'pending');
-    if (index > -1) { reqs.splice(index, 1); saveRequests(reqs); }
-    showToast('Đã từ chối lời mời.', 'info');
-    renderConvList(document.getElementById('searchInput').value);
-  };
-
-  let unfriendTargetId = null;
-  window.openUnfriendModal = function(u) {
-    unfriendTargetId = u.id;
-    document.getElementById('unfriendName').textContent = u.name;
-    document.getElementById('unfriendAvatar').textContent = u.avatar || '👤';
-    document.getElementById('unfriendPhone').textContent = u.phone ? '📞 ' + u.phone : '';
-    document.getElementById('unfriendModal').classList.remove('hidden');
-  };
-
-  document.getElementById('closeUnfriendModal').onclick = () => document.getElementById('unfriendModal').classList.add('hidden');
-  document.getElementById('cancelUnfriendBtn').onclick = () => document.getElementById('unfriendModal').classList.add('hidden');
-  
-  document.getElementById('confirmUnfriendBtn').onclick = () => {
-    if (!unfriendTargetId) return;
-    const uid = unfriendTargetId;
-    
-    const myFriends = loadFriends(APP.currentUser.id).filter(id => id !== uid);
-    saveFriends(APP.currentUser.id, myFriends);
-    const theirFriends = loadFriends(uid).filter(id => id !== APP.currentUser.id);
-    saveFriends(uid, theirFriends);
-    
-    const reqs = loadRequests().filter(r => !((r.fromId === APP.currentUser.id && r.toId === uid) || (r.fromId === uid && r.toId === APP.currentUser.id)));
-    saveRequests(reqs);
-
-    document.getElementById('unfriendModal').classList.add('hidden');
-    document.getElementById('rightPanel').classList.add('hidden');
-    showToast(`Đã xóa khỏi danh sách bạn bè.`, 'info');
-    unfriendTargetId = null;
-    renderConvList(document.getElementById('searchInput').value);
-  };
-
-  // ===== STATE =====
+  // ================================================================
+  // APP STATE
+  // ================================================================
   APP.currentUser = null;
   APP.activeConvId = null;
   APP.activeConvType = null;
   APP.activeConvTarget = null;
 
-  // ===== AUTH =====
-  const authScreen = document.getElementById('authScreen');
-  const chatScreen = document.getElementById('chatScreen');
+  // Realtime caches
+  let _allUsers = [];
+  let _friendIds = [];
+  let _allRequests = [];
+  let _allGroups = [];
+  let _presenceMap = {};
+  let _msgUnsubscribe = null;
+  let _knownUserIds = new Set();
 
+  // ================================================================
+  // UTILS
+  // ================================================================
+  function escapeHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function formatTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const diff = new Date() - d;
+    if (diff < 60000) return 'Vừa xong';
+    if (diff < 3600000) return Math.floor(diff/60000) + ' phút';
+    if (diff < 86400000) return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+    return d.getDate() + '/' + (d.getMonth()+1);
+  }
+  function validPhone(p) { return /^0[0-9]{9}$/.test(p); }
+  function getConvId(uid1, uid2) { return [uid1, uid2].sort().join('_'); }
+  function isOnline(userId) {
+    const p = _presenceMap[userId];
+    if (!p) return false;
+    return p.online === true && (Date.now() - (p.lastSeen || 0)) < 60000;
+  }
   function showToast(msg, type = 'info') {
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.className = 'toast ' + type;
     setTimeout(() => t.className = 'toast hidden', 3000);
   }
+  function isFriend(uid) { return _friendIds.includes(uid); }
+  function hasPendingRequestTo(uid) {
+    return _allRequests.some(r => r.fromId === APP.currentUser.id && r.toId === uid && r.status === 'pending');
+  }
+  function hasPendingRequestFrom(uid) {
+    return _allRequests.some(r => r.fromId === uid && r.toId === APP.currentUser.id && r.status === 'pending');
+  }
+  function countPendingIncoming() {
+    return _allRequests.filter(r => r.toId === APP.currentUser?.id && r.status === 'pending').length;
+  }
 
-  function validPhone(p) { return /^0[0-9]{9}$/.test(p); }
-
+  // ================================================================
+  // AUTH
+  // ================================================================
+  const authScreen = document.getElementById('authScreen');
+  const chatScreen = document.getElementById('chatScreen');
   const loginTab = document.getElementById('loginTab');
   const registerTab = document.getElementById('registerTab');
   const loginForm = document.getElementById('loginForm');
@@ -612,7 +809,6 @@
     if (type === 'register') { registerForm.classList.add('active'); registerTab.classList.add('active'); }
     if (type === 'forgot') forgotForm.classList.add('active');
   }
-
   function showMsg(text, cls) { msgEl.textContent = text; msgEl.className = 'message ' + cls; }
 
   loginTab.onclick = () => showForm('login');
@@ -622,23 +818,23 @@
   document.getElementById('forgotBtn').onclick = () => showForm('forgot');
   document.getElementById('backLogin').onclick = () => showForm('login');
 
-  loginForm.addEventListener('submit', e => {
+  loginForm.addEventListener('submit', async e => {
     e.preventDefault();
     const account = document.getElementById('loginAccount').value.trim();
     const password = document.getElementById('loginPassword').value.trim();
     if (!account || !password) { showMsg('Vui lòng nhập đầy đủ thông tin.', 'error'); return; }
-    const users = loadUsers();
+    showMsg('Đang đăng nhập...', '');
+    const users = await DB.getUsers();
     const user = users.find(u => u.phone === account || u.name.toLowerCase() === account.toLowerCase());
     if (!user) { showMsg('Không tìm thấy tài khoản.', 'error'); return; }
     if (user.password !== password) { showMsg('Mật khẩu không đúng.', 'error'); return; }
     APP.currentUser = user;
     localStorage.setItem('cntt1808_session', user.id);
-    hbWrite(user.id);
     showMsg('Đăng nhập thành công! Chào ' + user.name, 'success');
     setTimeout(enterChat, 800);
   });
 
-  registerForm.addEventListener('submit', e => {
+  registerForm.addEventListener('submit', async e => {
     e.preventDefault();
     const name = document.getElementById('regName').value.trim();
     const phone = document.getElementById('regPhone').value.trim();
@@ -648,39 +844,49 @@
     if (!validPhone(phone)) { showMsg('Số điện thoại không hợp lệ.', 'error'); return; }
     if (password.length < 6) { showMsg('Mật khẩu phải ít nhất 6 ký tự.', 'error'); return; }
     if (password !== confirm) { showMsg('Mật khẩu không khớp.', 'error'); return; }
-    const users = loadUsers();
+    showMsg('Đang tạo tài khoản...', '');
+    const users = await DB.getUsers();
     if (users.some(u => u.phone === phone)) { showMsg('Số điện thoại đã được đăng ký.', 'error'); return; }
     const avatars = ['🧑','👩','👦','👧','🧑‍💻','👩‍💻','👨‍🎓','👩‍🎓','🦸','🧙'];
-    const newUser = { id: 'u_' + Date.now(), name, phone, password, avatar: avatars[Math.floor(Math.random()*avatars.length)], status: 'online', registeredAt: Date.now() };
-    users.push(newUser);
-    saveUsers(users);
-    // Đánh dấu user này đã biết (để không self-notify) NHƯNG vẫn broadcast cho tab khác
-    _knownUserIds.add(newUser.id);
-    try { bc.postMessage({ type: 'new_user', user: newUser }); } catch(e) {}
-    showMsg('Đăng ký thành công! Đang đăng nhập...', 'success');
+    const newUser = {
+      id: 'u_' + Date.now(),
+      name, phone, password,
+      avatar: avatars[Math.floor(Math.random()*avatars.length)],
+      status: 'online',
+      registeredAt: Date.now()
+    };
+    await DB.saveUser(newUser);
     APP.currentUser = newUser;
     localStorage.setItem('cntt1808_session', newUser.id);
-    hbWrite(newUser.id);
+    showMsg('Đăng ký thành công! Đang đăng nhập...', 'success');
     setTimeout(enterChat, 1000);
   });
 
-  forgotForm.addEventListener('submit', e => {
+  forgotForm.addEventListener('submit', async e => {
     e.preventDefault();
     const phone = document.getElementById('forgotPhone').value.trim();
     if (!validPhone(phone)) { showMsg('Số điện thoại không hợp lệ.', 'error'); return; }
-    const users = loadUsers();
+    const users = await DB.getUsers();
     if (!users.some(u => u.phone === phone)) { showMsg('Số điện thoại chưa có tài khoản.', 'error'); return; }
     showMsg('Đã ghi nhận yêu cầu đặt lại mật khẩu.', 'success');
   });
 
-  const savedSession = localStorage.getItem('cntt1808_session');
-  if (savedSession) {
-    const users = loadUsers();
-    const user = users.find(u => u.id === savedSession);
-    if (user) {
-      APP.currentUser = user;
-      hbWrite(user.id); // ghi online ngay khi restore session
-      enterChat();
+  // ================================================================
+  // START APP (after Firebase connected)
+  // ================================================================
+  async function startApp() {
+    authScreen.classList.remove('hidden');
+
+    // Check saved session
+    const savedSession = localStorage.getItem('cntt1808_session');
+    if (savedSession) {
+      const users = await DB.getUsers();
+      const user = users.find(u => u.id === savedSession);
+      if (user) {
+        APP.currentUser = user;
+        enterChat();
+        return;
+      }
     }
   }
 
@@ -690,27 +896,123 @@
     initChat();
   }
 
-  function initChat() {
+  async function initChat() {
     const u = APP.currentUser;
     document.getElementById('myName').textContent = u.name;
     document.getElementById('myAvatar').textContent = u.avatar;
-    startHeartbeat(u.id); // bắt đầu heartbeat
-    renderConvList();
-    setupBroadcastListener();
-    // startUserPolling đã chạy từ đầu, không cần gọi lại
+
+    // Set presence (realtime online/offline)
+    DB.setPresence(u.id);
+
+    // Listen to all realtime data
+    DB.listenUsers(users => {
+      // Detect new users
+      users.forEach(user => {
+        if (!_knownUserIds.has(user.id) && user.id !== u.id) {
+          _knownUserIds.add(user.id);
+          if (_allUsers.length > 0) { // not first load
+            showNewUserNotification(user);
+            const backupModal = document.getElementById('backupModal');
+            if (!backupModal.classList.contains('hidden')) renderBackupList();
+          }
+        }
+        _knownUserIds.add(user.id);
+      });
+      _allUsers = users;
+      renderConvList(document.getElementById('searchInput')?.value || '');
+      renderBackupListIfOpen();
+    });
+
+    DB.listenPresence(presenceMap => {
+      _presenceMap = presenceMap;
+      renderConvList(document.getElementById('searchInput')?.value || '');
+      renderBackupListIfOpen();
+    });
+
+    DB.listenFriends(u.id, friendIds => {
+      _friendIds = friendIds;
+      renderConvList(document.getElementById('searchInput')?.value || '');
+    });
+
+    DB.listenRequests(reqs => {
+      _allRequests = reqs;
+      renderConvList(document.getElementById('searchInput')?.value || '');
+      updateFindBadge();
+    });
+
+    DB.listenGroups(groups => {
+      _allGroups = groups;
+      renderConvList(document.getElementById('searchInput')?.value || '');
+    });
   }
 
   document.getElementById('logoutBtn').onclick = () => {
-    stopHeartbeat();
-    if (APP.currentUser) hbClear(APP.currentUser.id);
+    // Set offline on logout
+    if (APP.currentUser) {
+      set(ref(db, 'presence/' + APP.currentUser.id), { online: false, lastSeen: Date.now() });
+    }
     localStorage.removeItem('cntt1808_session');
     APP.currentUser = null;
+    APP.activeConvId = null;
     chatScreen.classList.add('hidden');
     authScreen.classList.remove('hidden');
     showForm('login');
+    // Stop message listeners
+    if (_msgUnsubscribe) { _msgUnsubscribe(); _msgUnsubscribe = null; }
   };
 
-  // ===== CONVERSATION LIST =====
+  // ================================================================
+  // FRIEND SYSTEM
+  // ================================================================
+  window.handleAddFriend = async function(toId) {
+    await DB.sendRequest(APP.currentUser.id, toId);
+    showToast('Đã gửi lời mời kết bạn!', 'success');
+  };
+
+  window.handleAccept = async function(fromId) {
+    const req = _allRequests.find(r => r.fromId === fromId && r.toId === APP.currentUser.id && r.status === 'pending');
+    if (!req) return;
+    await DB.updateRequest(req.id, 'accepted');
+    await DB.addFriend(APP.currentUser.id, fromId);
+    const u = _allUsers.find(u => u.id === fromId);
+    showToast(`✅ Đã chấp nhận kết bạn với ${u?.name || ''}!`, 'success');
+  };
+
+  window.handleReject = async function(fromId) {
+    const req = _allRequests.find(r => r.fromId === fromId && r.toId === APP.currentUser.id && r.status === 'pending');
+    if (!req) return;
+    await DB.deleteRequest(req.id);
+    showToast('Đã từ chối lời mời.', 'info');
+  };
+
+  let unfriendTargetId = null;
+  window.openUnfriendModal = function(u) {
+    unfriendTargetId = u.id;
+    document.getElementById('unfriendName').textContent = u.name;
+    document.getElementById('unfriendAvatar').textContent = u.avatar || '👤';
+    document.getElementById('unfriendPhone').textContent = u.phone ? '📞 ' + u.phone : '';
+    document.getElementById('unfriendModal').classList.remove('hidden');
+  };
+  document.getElementById('closeUnfriendModal').onclick = () => document.getElementById('unfriendModal').classList.add('hidden');
+  document.getElementById('cancelUnfriendBtn').onclick = () => document.getElementById('unfriendModal').classList.add('hidden');
+  document.getElementById('confirmUnfriendBtn').onclick = async () => {
+    if (!unfriendTargetId) return;
+    await DB.removeFriend(APP.currentUser.id, unfriendTargetId);
+    // Clean up requests
+    const reqs = _allRequests.filter(r =>
+      (r.fromId === APP.currentUser.id && r.toId === unfriendTargetId) ||
+      (r.fromId === unfriendTargetId && r.toId === APP.currentUser.id)
+    );
+    for (const r of reqs) await DB.deleteRequest(r.id);
+    document.getElementById('unfriendModal').classList.add('hidden');
+    document.getElementById('rightPanel').classList.add('hidden');
+    showToast('Đã xóa khỏi danh sách bạn bè.', 'info');
+    unfriendTargetId = null;
+  };
+
+  // ================================================================
+  // CONVERSATION LIST
+  // ================================================================
   function updateFindBadge() {
     const count = countPendingIncoming();
     const tab = document.querySelector('.s-tab[data-tab="find"]');
@@ -723,41 +1025,30 @@
   }
 
   function renderConvList(filter = '') {
-    const allUsers = loadUsers().filter(u => u.id !== APP.currentUser.id);
-    const groups = loadGroups().filter(g => g.members.includes(APP.currentUser.id));
+    if (!APP.currentUser) return;
     const convList = document.getElementById('convList');
     convList.innerHTML = '';
     updateFindBadge();
-
     const activeTab = document.querySelector('.s-tab.active')?.dataset.tab || 'chats';
+    const allUsers = _allUsers.filter(u => u.id !== APP.currentUser.id);
+    const myGroups = _allGroups.filter(g => g.members && g.members.includes(APP.currentUser.id));
 
     if (activeTab === 'groups') {
-      groups.filter(g => !filter || g.name.toLowerCase().includes(filter.toLowerCase())).forEach(g => {
-        convList.appendChild(createConvItem(g.id, g.name, '👥', g.lastMsg || 'Chưa có tin nhắn', g.lastTime, 'group', g));
-      });
-      if (!groups.length) convList.innerHTML = '<div class="empty-list"><i class="ti ti-users-group"></i><p>Chưa có nhóm nào</p></div>';
+      myGroups.filter(g => !filter || g.name.toLowerCase().includes(filter.toLowerCase()))
+        .forEach(g => convList.appendChild(createConvItem(g.id, g.name, '👥', g.lastMsg || 'Chưa có tin nhắn', g.lastTime, 'group', g)));
+      if (!myGroups.length) convList.innerHTML = '<div class="empty-list"><i class="ti ti-users-group"></i><p>Chưa có nhóm nào</p></div>';
       return;
     }
 
     if (activeTab === 'contacts') {
-      const friendIds = loadFriends(APP.currentUser.id);
-      const friends = allUsers.filter(u => friendIds.includes(u.id) && (!filter || u.name.toLowerCase().includes(filter.toLowerCase())));
-      if (friends.length === 0) {
+      const friends = allUsers.filter(u => _friendIds.includes(u.id) && (!filter || u.name.toLowerCase().includes(filter.toLowerCase())));
+      if (!friends.length) {
         convList.innerHTML = '<div class="empty-list"><i class="ti ti-users"></i><p>Chưa có bạn bè nào<br><small>Vào "Tìm bạn" để thêm bạn</small></p></div>';
         return;
       }
       friends.forEach(u => {
         const convId = getConvId(APP.currentUser.id, u.id);
-        const msgs = loadMessages(convId);
-        const last = msgs[msgs.length - 1];
-        const item = createConvItem(convId, u.name, u.avatar, last?.text || 'Nhấn để chat', last?.time, 'dm', u);
-        const meta = item.querySelector('.conv-meta');
-        const unfBtn = document.createElement('button');
-        unfBtn.className = 'unfriend-btn';
-        unfBtn.innerHTML = '<i class="ti ti-user-minus"></i>';
-        unfBtn.title = 'Xóa bạn';
-        unfBtn.onclick = e => { e.stopPropagation(); openUnfriendModal(u); };
-        meta.appendChild(unfBtn);
+        const item = createConvItem(convId, u.name, u.avatar, 'Nhấn để chat', 0, 'dm', u);
         convList.appendChild(item);
       });
       return;
@@ -768,36 +1059,31 @@
       return;
     }
 
-    const friendIds = loadFriends(APP.currentUser.id);
+    // CHATS tab: friends + groups
+    const friendUsers = allUsers.filter(u => _friendIds.includes(u.id) && (!filter || u.name.toLowerCase().includes(filter.toLowerCase())));
     const allItems = [];
-    allUsers.filter(u => friendIds.includes(u.id) && (!filter || u.name.toLowerCase().includes(filter.toLowerCase()))).forEach(u => {
+    friendUsers.forEach(u => {
       const convId = getConvId(APP.currentUser.id, u.id);
-      const msgs = loadMessages(convId);
-      const last = msgs[msgs.length - 1];
-      allItems.push({ convId, name: u.name, avatar: u.avatar, lastMsg: last?.text || '', lastTime: last?.time || 0, type: 'dm', target: u });
+      allItems.push({ convId, name: u.name, avatar: u.avatar, lastMsg: '', lastTime: 0, type: 'dm', target: u });
     });
-    groups.filter(g => !filter || g.name.toLowerCase().includes(filter.toLowerCase())).forEach(g => {
+    myGroups.filter(g => !filter || g.name.toLowerCase().includes(filter.toLowerCase())).forEach(g => {
       allItems.push({ convId: g.id, name: g.name, avatar: '👥', lastMsg: g.lastMsg || '', lastTime: g.lastTime || 0, type: 'group', target: g });
     });
     allItems.sort((a, b) => (b.lastTime || 0) - (a.lastTime || 0));
-    if (allItems.length === 0) {
+    if (!allItems.length) {
       convList.innerHTML = '<div class="empty-list"><i class="ti ti-message-circle"></i><p>Chưa có tin nhắn nào<br><small>Kết bạn để bắt đầu chat</small></p></div>';
       return;
     }
-    allItems.forEach(item => {
-      convList.appendChild(createConvItem(item.convId, item.name, item.avatar, item.lastMsg || 'Nhấn để bắt đầu chat', item.lastTime, item.type, item.target));
-    });
+    allItems.forEach(item => convList.appendChild(createConvItem(item.convId, item.name, item.avatar, item.lastMsg || 'Nhấn để bắt đầu chat', item.lastTime, item.type, item.target)));
   }
 
   function renderFindTab(filter = '') {
     const convList = document.getElementById('convList');
     convList.innerHTML = '';
     const myId = APP.currentUser.id;
-    const allUsers = loadUsers().filter(u => u.id !== myId);
-    const friendIds = loadFriends(myId);
-    const reqs = loadRequests();
+    const allUsers = _allUsers.filter(u => u.id !== myId);
+    const incoming = _allRequests.filter(r => r.toId === myId && r.status === 'pending');
 
-    const incoming = reqs.filter(r => r.toId === myId && r.status === 'pending');
     if (incoming.length > 0) {
       const section = document.createElement('div');
       section.className = 'find-section-title';
@@ -815,13 +1101,13 @@
     }
 
     const others = allUsers.filter(u => !filter || u.name.toLowerCase().includes(filter.toLowerCase()) || u.phone.includes(filter));
-    if (others.length === 0) {
+    if (!others.length) {
       convList.innerHTML += '<div class="empty-list"><i class="ti ti-user-search"></i><p>Không tìm thấy</p></div>';
       return;
     }
     others.forEach(u => {
       let state = 'none';
-      if (friendIds.includes(u.id)) state = 'friend';
+      if (_friendIds.includes(u.id)) state = 'friend';
       else if (hasPendingRequestTo(u.id)) state = 'sent';
       else if (hasPendingRequestFrom(u.id)) state = 'incoming';
       convList.appendChild(createFindItem(u, state));
@@ -833,46 +1119,25 @@
     div.className = 'find-item';
     let actionHtml = '';
     if (state === 'friend') {
-      actionHtml = `
-        <div class="find-actions">
-          <button class="find-btn friend-btn" title="Nhấn để xóa bạn" onclick="openUnfriendModal(window._findUser_${u.id})">
-            <i class="ti ti-user-check"></i><span class="fb-label-default">Bạn bè</span><span class="fb-label-hover">Xóa bạn</span>
-          </button>
-        </div>`;
+      actionHtml = `<div class="find-actions"><button class="find-btn friend-btn" onclick="openUnfriendModal(window._fu_${u.id})"><i class="ti ti-user-check"></i><span class="fb-label-default">Bạn bè</span><span class="fb-label-hover">Xóa bạn</span></button></div>`;
     } else if (state === 'sent') {
-      actionHtml = `
-        <div class="find-actions">
-          <button class="find-btn sent-btn" disabled title="Đã gửi lời mời, chờ đối phương chấp nhận">
-            <i class="ti ti-clock"></i>Đã gửi lời mời
-          </button>
-        </div>`;
+      actionHtml = `<div class="find-actions"><button class="find-btn sent-btn" disabled><i class="ti ti-clock"></i>Đã gửi lời mời</button></div>`;
     } else if (state === 'incoming') {
-      actionHtml = `
-        <div class="find-actions">
-          <button class="find-btn accept-btn" title="Chấp nhận lời mời kết bạn" onclick="handleAccept('${u.id}')">
-            <i class="ti ti-user-check"></i>Chấp nhận
-          </button>
-          <button class="find-btn reject-btn" title="Từ chối lời mời" onclick="handleReject('${u.id}')">
-            <i class="ti ti-x"></i>
-          </button>
-        </div>`;
+      actionHtml = `<div class="find-actions"><button class="find-btn accept-btn" onclick="handleAccept('${u.id}')"><i class="ti ti-user-check"></i>Chấp nhận</button><button class="find-btn reject-btn" onclick="handleReject('${u.id}')"><i class="ti ti-x"></i></button></div>`;
     } else {
-      actionHtml = `
-        <div class="find-actions">
-          <button class="find-btn add-btn" title="Gửi lời mời kết bạn" onclick="handleAddFriend('${u.id}')">
-            <i class="ti ti-user-plus"></i>Kết bạn
-          </button>
-        </div>`;
+      actionHtml = `<div class="find-actions"><button class="find-btn add-btn" onclick="handleAddFriend('${u.id}')"><i class="ti ti-user-plus"></i>Kết bạn</button></div>`;
     }
+    const online = isOnline(u.id);
     div.innerHTML = `
-      <div class="find-avatar">${u.avatar}<span class="conv-dot ${isOnline(u.id) ? 'online' : 'offline'}"></span></div>
+      <div class="find-avatar">${u.avatar}<span class="conv-dot ${online ? 'online' : 'offline'}"></span></div>
       <div class="find-info">
         <div class="find-name">${u.name}</div>
         <div class="find-phone"><i class="ti ti-phone"></i>${u.phone}</div>
+        <div class="find-phone" style="color:${online ? '#4caf50' : '#9ca3af'};">${online ? '🟢 Đang online' : '⚫ Offline'}</div>
       </div>
       ${actionHtml}
     `;
-    window['_findUser_' + u.id] = u;
+    window['_fu_' + u.id] = u;
     return div;
   }
 
@@ -889,16 +1154,19 @@
         <div class="conv-name">${name}</div>
         <div class="conv-last">${escapeHtml(truncated)}</div>
       </div>
-      <div class="conv-meta">
-        <span class="conv-time">${timeStr}</span>
-      </div>
+      <div class="conv-meta"><span class="conv-time">${timeStr}</span></div>
     `;
     div.onclick = () => openConversation(convId, name, avatar, type, target);
     return div;
   }
 
-  // ===== OPEN CONVERSATION =====
+  // ================================================================
+  // OPEN CONVERSATION
+  // ================================================================
   function openConversation(convId, name, avatar, type, target) {
+    // Stop previous message listener
+    if (_msgUnsubscribe) { _msgUnsubscribe(); _msgUnsubscribe = null; }
+
     APP.activeConvId = convId;
     APP.activeConvType = type;
     APP.activeConvTarget = target;
@@ -909,24 +1177,43 @@
     document.getElementById('chatAvatar').textContent = avatar;
 
     const _chatOnline = target?.id ? isOnline(target.id) : false;
-    document.getElementById('chatStatus').textContent = type === 'group' 
+    document.getElementById('chatStatus').textContent = type === 'group'
       ? (target?.members?.length || 0) + ' thành viên'
-      : _chatOnline ? 'Đang hoạt động' : 'Ngoại tuyến';
+      : _chatOnline ? '🟢 Đang hoạt động' : '⚫ Ngoại tuyến';
 
     document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
     const el = document.querySelector(`.conv-item[data-id="${convId}"]`);
     if (el) el.classList.add('active');
 
     renderMessages(convId);
+
+    // Listen for new messages in realtime
+    const area = document.getElementById('messagesArea');
+    let firstLoad = true;
+    _msgUnsubscribe = DB.listenMessages(convId, msg => {
+      if (firstLoad) return; // Skip initial load (renderMessages handles it)
+      const noMsg = area.querySelector('.no-msgs');
+      if (noMsg) noMsg.remove();
+      area.appendChild(createMsgEl(msg));
+      area.scrollTop = area.scrollHeight;
+      // Update conv list with last message
+      renderConvList(document.getElementById('searchInput')?.value || '');
+    });
+
     document.getElementById('msgInput').focus();
+    // After a tick, allow new message listener
+    setTimeout(() => { firstLoad = false; }, 500);
   }
 
-  // ===== MESSAGES =====
-  function renderMessages(convId) {
+  // ================================================================
+  // MESSAGES
+  // ================================================================
+  async function renderMessages(convId) {
     const area = document.getElementById('messagesArea');
+    area.innerHTML = '<div class="no-msgs"><i class="ti ti-loader" style="animation:spin 1s linear infinite"></i><p>Đang tải...</p></div>';
+    const msgs = await DB.getMessages(convId);
     area.innerHTML = '';
-    const msgs = loadMessages(convId);
-    if (msgs.length === 0) {
+    if (!msgs.length) {
       area.innerHTML = '<div class="no-msgs"><i class="ti ti-message-circle"></i><p>Hãy gửi tin nhắn đầu tiên!</p></div>';
       return;
     }
@@ -949,8 +1236,7 @@
     else if (msg.type === 'call') content = `<div class="msg-bubble msg-call"><i class="ti ti-${msg.callType === 'video' ? 'video' : 'phone'}"></i> ${msg.text}</div>`;
 
     const timeStr = formatTime(msg.time);
-    const users = loadUsers();
-    const sender = users.find(u => u.id === msg.senderId);
+    const sender = _allUsers.find(u => u.id === msg.senderId);
 
     div.innerHTML = `
       ${!isMine ? `<div class="msg-avatar">${sender?.avatar || '?'}</div>` : ''}
@@ -966,19 +1252,16 @@
     return div;
   }
 
-  function sendMessage(type, text, extra = {}) {
+  async function sendMessage(type, text, extra = {}) {
     if (!APP.activeConvId) return;
     const msg = { id: 'm_' + Date.now(), senderId: APP.currentUser.id, type, text, time: Date.now(), ...extra };
-    saveMessage(APP.activeConvId, msg);
+    await DB.saveMessage(APP.activeConvId, msg);
 
     if (APP.activeConvType === 'group') {
-      const groups = loadGroups();
-      const g = groups.find(g => g.id === APP.activeConvId);
-      if (g) {
-        g.lastMsg = type === 'sticker' ? '(Sticker)' : type === 'image' ? '(Ảnh)' : type === 'voice' ? '(Tin nhắn thoại)' : text;
-        g.lastTime = Date.now();
-        saveGroups(groups);
-      }
+      await DB.updateGroup(APP.activeConvId, {
+        lastMsg: type === 'sticker' ? '(Sticker)' : type === 'image' ? '(Ảnh)' : type === 'voice' ? '(Tin nhắn thoại)' : text,
+        lastTime: Date.now()
+      });
     }
 
     const area = document.getElementById('messagesArea');
@@ -986,7 +1269,6 @@
     if (noMsg) noMsg.remove();
     area.appendChild(createMsgEl(msg));
     area.scrollTop = area.scrollHeight;
-    renderConvList();
   }
 
   document.getElementById('sendBtn').onclick = doSend;
@@ -997,7 +1279,6 @@
     this.style.height = 'auto';
     this.style.height = Math.min(this.scrollHeight, 120) + 'px';
   });
-
   function doSend() {
     const input = document.getElementById('msgInput');
     const text = input.value.trim();
@@ -1009,25 +1290,24 @@
 
   document.getElementById('imageBtn').onclick = () => document.getElementById('imageInput').click();
   document.getElementById('imageInput').onchange = function() {
-    const file = this.files[0];
-    if (!file) return;
+    const file = this.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = e => sendMessage('image', e.target.result);
     reader.readAsDataURL(file);
     this.value = '';
   };
-
   document.getElementById('fileBtn').onclick = () => document.getElementById('fileInput').click();
   document.getElementById('fileInput').onchange = function() {
-    const file = this.files[0];
-    if (!file) return;
+    const file = this.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = e => sendMessage('file', e.target.result, { fileName: file.name });
     reader.readAsDataURL(file);
     this.value = '';
   };
 
-  // ===== STICKERS =====
+  // ================================================================
+  // STICKERS
+  // ================================================================
   const STICKERS = {
     emoji: ['😀','😂','🥹','😍','🥰','😎','🤩','😴','😭','😡','😱','🤔','😏','🥳','🤗','😇','🤓','😬','🫡','🫶'],
     animals: ['🐱','🐶','🐼','🦊','🐨','🦁','🐯','🐸','🐙','🦋','🦄','🐬','🦅','🦜','🐝','🦊','🐻','🦝','🦔','🦦'],
@@ -1035,47 +1315,33 @@
     study: ['📚','📝','💻','🔬','📐','📊','🎓','🏆','💡','📖','✏️','🖊️','📌','🗒️','📎','⏰','🔭','🧮','📡','🗺️'],
     feelings: ['❤️','🧡','💛','💚','💙','💜','🖤','💔','💕','💞','💝','🔥','✨','💯','🎉','🌈','⚡','🌟','🎊','💫'],
   };
-
   const stickerPicker = document.getElementById('stickerPicker');
   const stickerGrid = document.getElementById('stickerGrid');
-
-  document.getElementById('stickerBtn').onclick = (e) => {
-    e.stopPropagation();
-    stickerPicker.classList.toggle('hidden');
-    renderStickers('emoji');
-  };
+  document.getElementById('stickerBtn').onclick = e => { e.stopPropagation(); stickerPicker.classList.toggle('hidden'); renderStickers('emoji'); };
   document.getElementById('closeStickerBtn').onclick = () => stickerPicker.classList.add('hidden');
   document.addEventListener('click', e => {
-    if (!stickerPicker.contains(e.target) && e.target !== document.getElementById('stickerBtn')) {
-      stickerPicker.classList.add('hidden');
-    }
+    if (!stickerPicker.contains(e.target) && e.target !== document.getElementById('stickerBtn')) stickerPicker.classList.add('hidden');
   });
-
   document.querySelectorAll('.stk-tab').forEach(tab => {
     tab.onclick = function() {
       document.querySelectorAll('.stk-tab').forEach(t => t.classList.remove('active'));
-      this.classList.add('active');
-      renderStickers(this.dataset.cat);
+      this.classList.add('active'); renderStickers(this.dataset.cat);
     };
   });
-
   function renderStickers(cat) {
     stickerGrid.innerHTML = '';
     STICKERS[cat].forEach(s => {
-      const btn = document.createElement('button');
-      btn.className = 'sticker-item';
-      btn.textContent = s;
+      const btn = document.createElement('button'); btn.className = 'sticker-item'; btn.textContent = s;
       btn.onclick = () => { sendMessage('sticker', s); stickerPicker.classList.add('hidden'); };
       stickerGrid.appendChild(btn);
     });
   }
 
-  // ===== VOICE MESSAGE =====
-  let mediaRecorder = null;
-  let audioChunks = [];
-  let isRecording = false;
+  // ================================================================
+  // VOICE MESSAGE
+  // ================================================================
+  let mediaRecorder = null, audioChunks = [], isRecording = false;
   const voiceMsgBtn = document.getElementById('voiceMsgBtn');
-
   voiceMsgBtn.onclick = async () => {
     if (!isRecording) {
       try {
@@ -1090,21 +1356,19 @@
           reader.readAsDataURL(blob);
           stream.getTracks().forEach(t => t.stop());
         };
-        mediaRecorder.start();
-        isRecording = true;
-        voiceMsgBtn.classList.add('recording');
-        voiceMsgBtn.innerHTML = '<i class="ti ti-square"></i>';
+        mediaRecorder.start(); isRecording = true;
+        voiceMsgBtn.classList.add('recording'); voiceMsgBtn.innerHTML = '<i class="ti ti-square"></i>';
         showToast('🎙️ Đang ghi âm... Nhấn lại để dừng', 'info');
       } catch(e) { showToast('Không thể truy cập microphone', 'error'); }
     } else {
-      mediaRecorder.stop();
-      isRecording = false;
-      voiceMsgBtn.classList.remove('recording');
-      voiceMsgBtn.innerHTML = '<i class="ti ti-microphone"></i>';
+      mediaRecorder.stop(); isRecording = false;
+      voiceMsgBtn.classList.remove('recording'); voiceMsgBtn.innerHTML = '<i class="ti ti-microphone"></i>';
     }
   };
 
-  // ===== SIDEBAR TABS =====
+  // ================================================================
+  // SIDEBAR TABS
+  // ================================================================
   document.querySelectorAll('.s-tab').forEach(tab => {
     tab.onclick = function() {
       document.querySelectorAll('.s-tab').forEach(t => t.classList.remove('active'));
@@ -1112,434 +1376,57 @@
       renderConvList(document.getElementById('searchInput').value);
     };
   });
-
   document.getElementById('searchInput').oninput = function() { renderConvList(this.value); };
+  document.getElementById('backBtn').onclick = () => {
+    document.getElementById('chatWindow').classList.add('hidden');
+    document.getElementById('chatWelcome').classList.remove('hidden');
+    APP.activeConvId = null;
+    if (_msgUnsubscribe) { _msgUnsubscribe(); _msgUnsubscribe = null; }
+  };
 
-  // ===== NEW GROUP =====
+  // ================================================================
+  // NEW GROUP
+  // ================================================================
   document.getElementById('newGroupBtn').onclick = () => {
     const modal = document.getElementById('newGroupModal');
     modal.classList.remove('hidden');
     const membersList = document.getElementById('membersList');
     membersList.innerHTML = '';
-    const users = loadUsers().filter(u => u.id !== APP.currentUser.id);
-    users.forEach(u => {
+    _allUsers.filter(u => u.id !== APP.currentUser.id).forEach(u => {
       const label = document.createElement('label');
       label.className = 'member-item';
       label.innerHTML = `<input type="checkbox" value="${u.id}" /><span>${u.avatar}</span><span>${u.name}</span>`;
       membersList.appendChild(label);
     });
   };
-
   document.getElementById('closeGroupModal').onclick = () => document.getElementById('newGroupModal').classList.add('hidden');
-
-  document.getElementById('createGroupBtn').onclick = () => {
+  document.getElementById('createGroupBtn').onclick = async () => {
     const name = document.getElementById('groupNameInput').value.trim();
     if (!name) { showToast('Nhập tên nhóm!', 'error'); return; }
     const selected = [...document.querySelectorAll('#membersList input:checked')].map(i => i.value);
-    if (selected.length < 1) { showToast('Chọn ít nhất 1 thành viên!', 'error'); return; }
-    const groups = loadGroups();
+    if (!selected.length) { showToast('Chọn ít nhất 1 thành viên!', 'error'); return; }
     const newGroup = { id: 'g_' + Date.now(), name, members: [APP.currentUser.id, ...selected], createdBy: APP.currentUser.id, createdAt: Date.now(), lastMsg: '', lastTime: 0 };
-    groups.push(newGroup);
-    saveGroups(groups);
+    await DB.saveGroup(newGroup);
     document.getElementById('newGroupModal').classList.add('hidden');
     document.getElementById('groupNameInput').value = '';
     showToast('Tạo nhóm thành công!', 'success');
-    renderConvList();
   };
 
-  // ===== VIDEO / VOICE CALL (NHÓM + 1:1) =====
-  let peer = null;
-  let activeCalls = {};
-  let localStream = null;
-  let callTimerInterval = null;
-  let callStartTime = null;
-  let callDurationSecs = 0;
-
-  // ----- TIMER -----
-  function startCallTimer() {
-    stopCallTimer(); // đảm bảo không chạy 2 lần
-    callStartTime = Date.now();
-    const timerEl = document.getElementById('callTimer');
-    const statusEl = document.getElementById('callStatus');
-    timerEl.classList.remove('hidden');
-    statusEl.classList.add('hidden');
-    callTimerInterval = setInterval(() => {
-      callDurationSecs = Math.floor((Date.now() - callStartTime) / 1000);
-      const m = String(Math.floor(callDurationSecs / 60)).padStart(2, '0');
-      const s = String(callDurationSecs % 60).padStart(2, '0');
-      document.getElementById('callTimerDisplay').textContent = m + ':' + s;
-    }, 1000);
+  // ================================================================
+  // BACKUP / ADMIN PANEL
+  // ================================================================
+  function renderBackupListIfOpen() {
+    const backupModal = document.getElementById('backupModal');
+    if (!backupModal.classList.contains('hidden')) renderBackupList();
   }
 
-  function stopCallTimer() {
-    if (callTimerInterval) { clearInterval(callTimerInterval); callTimerInterval = null; }
-    const timerEl = document.getElementById('callTimer');
-    const statusEl = document.getElementById('callStatus');
-    if (timerEl) timerEl.classList.add('hidden');
-    if (statusEl) { statusEl.classList.remove('hidden'); statusEl.textContent = 'Đang gọi...'; }
-  }
-
-  function formatDuration(secs) {
-    const m = Math.floor(secs / 60), s = secs % 60;
-    if (m === 0) return `${s} giây`;
-    return `${m} phút ${s} giây`;
-  }
-
-  // ----- PEER INIT -----
-  async function initPeer() {
-    if (peer && !peer.destroyed) return peer;
-    return new Promise((resolve) => {
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js';
-      script.onload = () => {
-        const peerId = 'cntt1808_' + APP.currentUser.id + '_' + Date.now();
-        peer = new Peer(peerId, { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
-        peer.on('open', () => { APP.myPeerId = peerId; resolve(peer); });
-        peer.on('call', handleIncomingCall);
-        peer.on('error', () => resolve(peer));
-      };
-      document.head.appendChild(script);
-    });
-  }
-
-  // ----- END CALL (cả 2 bên) -----
-  function endCall(fromRemote = false) {
-    const duration = callDurationSecs;
-    stopCallTimer();
-    callDurationSecs = 0;
-
-    // Phát tín hiệu kết thúc cho bên kia nếu MÌNH chủ động tắt
-    if (!fromRemote) {
-      const signal = { type: 'end_call', by: APP.currentUser.id, time: Date.now() };
-      try { bc.postMessage(signal); } catch(e) {}
-      // localStorage signal cho tab/cửa sổ khác
-      localStorage.setItem('cntt1808_call_signal', JSON.stringify(signal));
-      setTimeout(() => localStorage.removeItem('cntt1808_call_signal'), 4000);
-    }
-
-    Object.values(activeCalls).forEach(c => { try { c.close(); } catch(e) {} });
-    activeCalls = {};
-    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-
-    document.getElementById('callModal').classList.add('hidden');
-    document.getElementById('videoGrid').innerHTML = '';
-    document.getElementById('localVideo').srcObject = null;
-
-    if (fromRemote && duration > 0) {
-      showToast(`📞 Cuộc gọi kết thúc · ${formatDuration(duration)}`, 'info');
-    } else if (duration > 0) {
-      showToast(`📞 Đã kết thúc · ${formatDuration(duration)}`, 'info');
-    }
-  }
-
-  // ----- START CALL -----
-  async function startCall(isVideo) {
-    if (!APP.activeConvTarget) return;
-    const isGroup = APP.activeConvType === 'group';
-
-    try { localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true }); }
-    catch(e) { showToast('Không thể truy cập ' + (isVideo ? 'camera/mic' : 'mic'), 'error'); return; }
-
-    await initPeer();
-
-    const peerMap = JSON.parse(localStorage.getItem('cntt1808_peers') || '{}');
-    peerMap[APP.currentUser.id] = APP.myPeerId;
-    localStorage.setItem('cntt1808_peers', JSON.stringify(peerMap));
-
-    showCallModal(APP.activeConvTarget.name, APP.activeConvTarget.avatar || '👥', isVideo);
-    document.getElementById('localVideo').srcObject = localStream;
-    document.getElementById('videoGrid').innerHTML = '';
-    activeCalls = {};
-
-    if (!isGroup) {
-      const targetPeerId = peerMap[APP.activeConvTarget.id];
-      if (!targetPeerId) {
-        showToast(`${APP.activeConvTarget.name} chưa online để nhận cuộc gọi`, 'info');
-        endCall(); return;
-      }
-      makeCall(targetPeerId, localStream);
-      sendMessage('call', `📞 Cuộc gọi ${isVideo ? 'video' : 'thoại'}`, { callType: isVideo ? 'video' : 'voice' });
-    } else {
-      const members = APP.activeConvTarget.members.filter(id => id !== APP.currentUser.id);
-      let calledAny = false;
-      members.forEach(uid => {
-        const pid = peerMap[uid];
-        if (pid) { makeCall(pid, localStream); calledAny = true; }
-      });
-      if (!calledAny) {
-        showToast('Không có thành viên nào online để nhận cuộc gọi', 'info');
-        endCall(); return;
-      }
-      sendMessage('call', `📞 Cuộc gọi nhóm ${isVideo ? 'video' : 'thoại'}`, { callType: isVideo ? 'video' : 'voice' });
-    }
-  }
-
-  function makeCall(targetPeerId, stream) {
-    const call = peer.call(targetPeerId, stream);
-    activeCalls[targetPeerId] = call;
-    call.on('stream', remoteStream => {
-      addVideoStream(remoteStream, targetPeerId);
-      document.getElementById('callStatus').textContent = 'Đã kết nối';
-      startCallTimer(); // Bắt đầu đếm giây khi kết nối thành công
-    });
-    call.on('close', () => {
-      removeVideoStream(targetPeerId);
-      // Nếu không còn cuộc gọi nào → bên kia đã tắt → ngắt cả modal
-      if (Object.keys(activeCalls).length === 0) {
-        showToast('📴 Người dùng kia đã kết thúc cuộc gọi', 'info');
-        endCall(true);
-      }
-    });
-    call.on('error', () => removeVideoStream(targetPeerId));
-  }
-
-  function addVideoStream(stream, peerId) {
-    let video = document.getElementById('vid_' + peerId);
-    if (!video) {
-      video = document.createElement('video');
-      video.id = 'vid_' + peerId;
-      video.autoplay = true; video.playsInline = true;
-      document.getElementById('videoGrid').appendChild(video);
-    }
-    video.srcObject = stream;
-  }
-
-  function removeVideoStream(peerId) {
-    const video = document.getElementById('vid_' + peerId);
-    if (video) video.remove();
-    if (activeCalls[peerId]) { try { activeCalls[peerId].close(); } catch(e) {} delete activeCalls[peerId]; }
-  }
-
-  function handleIncomingCall(call) {
-    APP.pendingCall = call;
-    const peerMap = JSON.parse(localStorage.getItem('cntt1808_peers') || '{}');
-    const callerEntry = Object.entries(peerMap).find(([uid, pid]) => pid === call.peer);
-    const callerUid = callerEntry ? callerEntry[0] : null;
-    const caller = loadUsers().find(u => u.id === callerUid);
-    showIncomingCall(caller?.name || 'Ai đó', caller?.avatar || '👤');
-  }
-
-  function showCallModal(name, avatar, isVideo) {
-    const m = document.getElementById('callModal');
-    document.getElementById('callName').textContent = name;
-    document.getElementById('callAvatar').textContent = avatar;
-    document.getElementById('callStatus').textContent = isVideo ? '📹 Đang kết nối...' : '📞 Đang kết nối...';
-    document.getElementById('callTimer').classList.add('hidden');
-    document.getElementById('callTimerDisplay').textContent = '00:00';
-    m.classList.remove('hidden');
-    if (!isVideo) m.classList.add('voice-only'); else m.classList.remove('voice-only');
-  }
-
-  function showIncomingCall(name, avatar) {
-    document.getElementById('incomingName').textContent = name;
-    document.getElementById('incomingAvatar').textContent = avatar;
-    document.getElementById('incomingCall').classList.remove('hidden');
-  }
-
-  document.getElementById('videoCallBtn').onclick = () => startCall(true);
-  document.getElementById('voiceCallBtn').onclick = () => startCall(false);
-  document.getElementById('endCallBtn').onclick = () => endCall(false);
-
-  document.getElementById('acceptCallBtn').onclick = async () => {
-    document.getElementById('incomingCall').classList.add('hidden');
-    const call = APP.pendingCall;
-    if (!call) return;
-
-    try { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); }
-    catch(e) { localStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-
-    document.getElementById('videoGrid').innerHTML = '';
-    activeCalls = {};
-
-    call.answer(localStream);
-    activeCalls[call.peer] = call;
-    call.on('stream', remoteStream => {
-      addVideoStream(remoteStream, call.peer);
-      startCallTimer(); // Bắt đầu đếm giây
-    });
-    call.on('close', () => {
-      removeVideoStream(call.peer);
-      showToast('📴 Người dùng kia đã kết thúc cuộc gọi', 'info');
-      endCall(true);
-    });
-
-    showCallModal('Cuộc gọi đến', '📞', true);
-    document.getElementById('localVideo').srcObject = localStream;
-  };
-
-  document.getElementById('rejectCallBtn').onclick = () => {
-    document.getElementById('incomingCall').classList.add('hidden');
-    if (APP.pendingCall) APP.pendingCall.close();
-    showToast('Đã từ chối cuộc gọi', 'info');
-  };
-
-  document.getElementById('toggleMicBtn').onclick = function() {
-    if (!localStream) return;
-    const audioTracks = localStream.getAudioTracks();
-    audioTracks.forEach(t => t.enabled = !t.enabled);
-    const on = audioTracks[0]?.enabled;
-    this.innerHTML = `<i class="ti ti-microphone${on ? '' : '-off'}"></i>`;
-    this.classList.toggle('muted', !on);
-  };
-
-  document.getElementById('toggleCamBtn').onclick = function() {
-    if (!localStream) return;
-    const videoTracks = localStream.getVideoTracks();
-    videoTracks.forEach(t => t.enabled = !t.enabled);
-    const on = videoTracks[0]?.enabled;
-    this.innerHTML = `<i class="ti ti-video${on ? '' : '-off'}"></i>`;
-    this.classList.toggle('muted', !on);
-  };
-
-  document.getElementById('toggleScreenBtn').onclick = async function() {
-    try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-      const screenTrack = screenStream.getVideoTracks()[0];
-      
-      // Áp dụng chia sẻ màn hình cho tất cả cuộc gọi hiện tại
-      Object.values(activeCalls).forEach(call => {
-        if (call.peerConnection) {
-          const sender = call.peerConnection.getSenders().find(s => s.track?.kind === 'video');
-          if (sender) sender.replaceTrack(screenTrack);
-        }
-      });
-      
-      document.getElementById('localVideo').srcObject = screenStream;
-      screenTrack.onended = () => { showToast('Đã dừng chia sẻ màn hình', 'info'); };
-      showToast('Đang chia sẻ màn hình', 'success');
-    } catch(e) { showToast('Không thể chia sẻ màn hình', 'error'); }
-  };
-
-  // ===== MORE PANEL =====
-  document.getElementById('moreBtn').onclick = () => {
-    const panel = document.getElementById('rightPanel');
-    panel.classList.toggle('hidden');
-    if (!panel.classList.contains('hidden') && APP.activeConvTarget) { renderPanel(); }
-  };
-  document.getElementById('closePanelBtn').onclick = () => document.getElementById('rightPanel').classList.add('hidden');
-
-  function renderPanel() {
-    const t = APP.activeConvTarget;
-    const body = document.getElementById('panelBody');
-    if (APP.activeConvType === 'dm') {
-      const friendStatus = isFriend(t.id);
-      const sentReq = hasPendingRequestTo(t.id);
-      const incomingReq = hasPendingRequestFrom(t.id);
-      let friendBtnHtml = '';
-      if (friendStatus) {
-        friendBtnHtml = `<button class="panel-btn danger-btn" onclick="openUnfriendModal({id:'${t.id}',name:'${t.name}'})"><i class="ti ti-user-minus"></i>Xóa bạn</button>`;
-      } else if (sentReq) {
-        friendBtnHtml = `<button class="panel-btn" disabled style="opacity:0.6;cursor:default"><i class="ti ti-clock"></i>Đã gửi lời mời</button>`;
-      } else if (incomingReq) {
-        friendBtnHtml = `<button class="panel-btn" onclick="handleAccept('${t.id}');renderPanel()"><i class="ti ti-user-check"></i>Chấp nhận kết bạn</button>`;
-      } else {
-        friendBtnHtml = `<button class="panel-btn" onclick="handleAddFriend('${t.id}');renderPanel()"><i class="ti ti-user-plus"></i>Kết bạn</button>`;
-      }
-      body.innerHTML = `
-        <div class="panel-profile">
-          <div class="panel-avatar">${t.avatar}</div>
-          <div class="panel-name">${t.name}</div>
-          <div class="panel-status ${isOnline(t.id) ? 'online' : 'offline'}">${isOnline(t.id) ? '🟢 Đang hoạt động' : '⚫ Ngoại tuyến'}</div>
-          <div class="panel-phone"><i class="ti ti-phone"></i> ${t.phone}</div>
-        </div>
-        <div class="panel-actions">
-          <button class="panel-btn" onclick="startCall(false)"><i class="ti ti-phone"></i>Gọi thoại</button>
-          <button class="panel-btn" onclick="startCall(true)"><i class="ti ti-video"></i>Video call</button>
-          ${friendBtnHtml}
-        </div>
-        <div class="panel-media">
-          <div class="panel-section-title">Ảnh & File</div>
-          <div class="panel-media-grid" id="panelMediaGrid"></div>
-        </div>
-      `;
-      const msgs = loadMessages(APP.activeConvId);
-      const grid = document.getElementById('panelMediaGrid');
-      msgs.filter(m => m.type === 'image').forEach(m => {
-        const img = document.createElement('img');
-        img.src = m.text; img.onclick = () => window.open(m.text);
-        grid.appendChild(img);
-      });
-      if (!grid.children.length) grid.innerHTML = '<p style="color:var(--muted);font-size:13px;">Chưa có ảnh</p>';
-    } else {
-      const groups = loadGroups();
-      const g = groups.find(g => g.id === APP.activeConvId);
-      const users = loadUsers();
-      body.innerHTML = `
-        <div class="panel-profile">
-          <div class="panel-avatar">👥</div>
-          <div class="panel-name">${g?.name}</div>
-          <div class="panel-phone">${g?.members.length} thành viên</div>
-        </div>
-        <div class="panel-actions">
-          <button class="panel-btn" onclick="startCall(false)"><i class="ti ti-phone"></i>Gọi nhóm</button>
-          <button class="panel-btn" onclick="startCall(true)"><i class="ti ti-video"></i>Video nhóm</button>
-        </div>
-        <div class="panel-section-title" style="padding:12px 16px 8px;">Thành viên</div>
-        <div id="groupMembersList"></div>
-      `;
-      const ml = document.getElementById('groupMembersList');
-      g?.members.forEach(uid => {
-        const u = users.find(u => u.id === uid);
-        if (!u) return;
-        const div = document.createElement('div');
-        div.className = 'member-row';
-        div.innerHTML = `<span>${u.avatar}</span><span>${u.name}</span>${uid === g.createdBy ? '<span class="badge">Trưởng nhóm</span>' : ''}`;
-        ml.appendChild(div);
-      });
-    }
-  }
-
-  document.getElementById('backBtn').onclick = () => {
-    document.getElementById('chatWindow').classList.add('hidden');
-    document.getElementById('chatWelcome').classList.remove('hidden');
-    APP.activeConvId = null;
-  };
-
-  // ===== BROADCAST LISTENER =====
-  function setupBroadcastListener() {
-    bc.addEventListener('message', e => {
-      if (e.data.type === 'new_message') {
-        if (e.data.convId === APP.activeConvId) {
-          const area = document.getElementById('messagesArea');
-          const noMsg = area.querySelector('.no-msgs');
-          if (noMsg) noMsg.remove();
-          area.appendChild(createMsgEl(e.data.msg));
-          area.scrollTop = area.scrollHeight;
-        }
-        renderConvList(document.getElementById('searchInput').value);
-      }
-      if (e.data.type === 'friend_update') {
-        renderConvList(document.getElementById('searchInput').value);
-        updateFindBadge();
-      }
-      if (e.data.type === 'new_user') {
-        const u = e.data.user;
-        if (!_knownUserIds.has(u.id)) {
-          _knownUserIds.add(u.id);
-          showNewUserNotification(u);
-        }
-        const backupModal = document.getElementById('backupModal');
-        if (!backupModal.classList.contains('hidden')) renderBackupList();
-      }
-      if (e.data.type === 'end_call') {
-        // Bên kia tắt máy → ngắt modal phía này
-        if (!document.getElementById('callModal').classList.contains('hidden')) {
-          endCall(true);
-        }
-      }
-    });
-  }
-
-  // ===== BACKUP / ACCOUNT MANAGER =====
   function renderBackupList() {
-    const users = loadUsers();
-    const sorted = [...users].sort((a, b) => (b.registeredAt || 0) - (a.registeredAt || 0));
+    const sorted = [..._allUsers].sort((a, b) => (b.registeredAt || 0) - (a.registeredAt || 0));
     const countEl = document.getElementById('backupUserCount');
     const listEl = document.getElementById('backupUserList');
-    const refreshEl = document.getElementById('backupLastRefresh');
-    const onlineCount = users.filter(u => isOnline(u.id)).length;
-    countEl.textContent = `${users.length} tài khoản • 🟢 ${onlineCount} đang online`;
-    refreshEl.textContent = 'Cập nhật lúc: ' + new Date().toLocaleTimeString('vi-VN');
+    const onlineCount = _allUsers.filter(u => isOnline(u.id)).length;
+    countEl.textContent = `${_allUsers.length} tài khoản • 🟢 ${onlineCount} đang online`;
+    document.getElementById('backupLastRefresh').textContent = 'Cập nhật lúc: ' + new Date().toLocaleTimeString('vi-VN');
     listEl.innerHTML = '';
     sorted.forEach((u, idx) => {
       const isNew = u.registeredAt && (Date.now() - u.registeredAt < 120000);
@@ -1569,14 +1456,12 @@
     toast.classList.remove('hidden');
     clearTimeout(window._newUserToastTimer);
     window._newUserToastTimer = setTimeout(() => toast.classList.add('hidden'), 6000);
-    // Hiện badge đỏ trên nút backup
     const btn = document.getElementById('backupBtn');
     if (btn) {
       btn.style.position = 'relative';
       let dot = btn.querySelector('.backup-new-dot');
       if (!dot) {
-        dot = document.createElement('span');
-        dot.className = 'backup-new-dot';
+        dot = document.createElement('span'); dot.className = 'backup-new-dot';
         dot.style.cssText = 'position:absolute;top:4px;right:4px;width:8px;height:8px;background:#e53935;border-radius:50%;border:2px solid #0068ff;';
         btn.appendChild(dot);
       }
@@ -1586,33 +1471,23 @@
   document.getElementById('backupBtn').onclick = () => {
     document.getElementById('backupModal').classList.remove('hidden');
     renderBackupList();
-    // Xóa badge khi mở modal
     const dot = document.getElementById('backupBtn').querySelector('.backup-new-dot');
     if (dot) dot.remove();
   };
   document.getElementById('closeBackupModal').onclick = () => document.getElementById('backupModal').classList.add('hidden');
 
   document.getElementById('exportJsonBtn').onclick = () => {
-    const users = loadUsers().map(u => ({
-      id: u.id, name: u.name, phone: u.phone,
-      avatar: u.avatar, status: u.status,
-      registeredAt: u.registeredAt ? new Date(u.registeredAt).toLocaleString('vi-VN') : 'N/A'
-    }));
+    const users = _allUsers.map(u => ({ id: u.id, name: u.name, phone: u.phone, avatar: u.avatar, online: isOnline(u.id), registeredAt: u.registeredAt ? new Date(u.registeredAt).toLocaleString('vi-VN') : 'N/A' }));
     const blob = new Blob([JSON.stringify(users, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'cntt1808_accounts_' + Date.now() + '.json'; a.click();
     URL.revokeObjectURL(url);
     showToast('✅ Đã xuất file JSON!', 'success');
   };
-
   document.getElementById('exportCsvBtn').onclick = () => {
-    const users = loadUsers();
-    const rows = [['STT','ID','Họ và tên','Số điện thoại','Avatar','Trạng thái','Ngày đăng ký']];
-    users.forEach((u, i) => {
-      rows.push([i+1, u.id, u.name, u.phone, u.avatar, u.status === 'online' ? 'Đang hoạt động' : 'Ngoại tuyến',
-        u.registeredAt ? new Date(u.registeredAt).toLocaleString('vi-VN') : 'N/A']);
-    });
-    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const rows = [['STT','ID','Họ và tên','Số điện thoại','Avatar','Online','Ngày đăng ký']];
+    _allUsers.forEach((u, i) => rows.push([i+1, u.id, u.name, u.phone, u.avatar, isOnline(u.id) ? 'Online' : 'Offline', u.registeredAt ? new Date(u.registeredAt).toLocaleString('vi-VN') : 'N/A']));
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'cntt1808_accounts_' + Date.now() + '.csv'; a.click();
@@ -1620,49 +1495,279 @@
     showToast('✅ Đã xuất file CSV!', 'success');
   };
 
-  // Lắng nghe storage event — bắt mọi thay đổi từ tab khác
-  window.addEventListener('storage', e => {
-    // Tab khác có user mới đăng ký
-    if (e.key === 'cntt1808_users' && e.newValue) {
-      try {
-        checkForNewUsers(); // dùng hàm polling chung để tránh duplicate
-        const backupModal = document.getElementById('backupModal');
-        if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
-        if (APP.currentUser) renderConvList(document.getElementById('searchInput')?.value || '');
-      } catch(err) {}
-    }
-    // Heartbeat thay đổi → cập nhật dots
-    if (e.key && e.key.startsWith('cntt1808_hb_')) {
-      if (APP.currentUser) renderConvList(document.getElementById('searchInput')?.value || '');
-      const backupModal = document.getElementById('backupModal');
-      if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
-    }
-    // Bên kia tắt cuộc gọi → ngắt modal phía này
-    if (e.key === 'cntt1808_call_signal' && e.newValue) {
-      try {
-        const sig = JSON.parse(e.newValue);
-        if (sig.type === 'end_call' && sig.by !== APP.currentUser?.id) {
-          if (!document.getElementById('callModal').classList.contains('hidden')) {
-            endCall(true);
-          }
-        }
-      } catch(err) {}
-    }
-  });
+  // ================================================================
+  // MORE PANEL
+  // ================================================================
+  document.getElementById('moreBtn').onclick = () => {
+    const panel = document.getElementById('rightPanel');
+    panel.classList.toggle('hidden');
+    if (!panel.classList.contains('hidden') && APP.activeConvTarget) renderPanel();
+  };
+  document.getElementById('closePanelBtn').onclick = () => document.getElementById('rightPanel').classList.add('hidden');
 
-  // ===== UTILS =====
-  function escapeHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function formatTime(ts) {
-    if (!ts) return '';
-    const d = new Date(ts);
-    const diff = new Date() - d;
-    if (diff < 60000) return 'Vừa xong';
-    if (diff < 3600000) return Math.floor(diff/60000) + ' phút';
-    if (diff < 86400000) return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
-    return d.getDate() + '/' + (d.getMonth()+1);
+  function renderPanel() {
+    const t = APP.activeConvTarget;
+    const body = document.getElementById('panelBody');
+    if (APP.activeConvType === 'dm') {
+      const friendStatus = isFriend(t.id);
+      const sentReq = hasPendingRequestTo(t.id);
+      const incomingReq = hasPendingRequestFrom(t.id);
+      let friendBtnHtml = '';
+      if (friendStatus) {
+        friendBtnHtml = `<button class="panel-btn danger-btn" onclick="openUnfriendModal({id:'${t.id}',name:'${t.name}'})"><i class="ti ti-user-minus"></i>Xóa bạn</button>`;
+      } else if (sentReq) {
+        friendBtnHtml = `<button class="panel-btn" disabled style="opacity:0.6;cursor:default"><i class="ti ti-clock"></i>Đã gửi lời mời</button>`;
+      } else if (incomingReq) {
+        friendBtnHtml = `<button class="panel-btn" onclick="handleAccept('${t.id}');renderPanel()"><i class="ti ti-user-check"></i>Chấp nhận kết bạn</button>`;
+      } else {
+        friendBtnHtml = `<button class="panel-btn" onclick="handleAddFriend('${t.id}');renderPanel()"><i class="ti ti-user-plus"></i>Kết bạn</button>`;
+      }
+      const online = isOnline(t.id);
+      body.innerHTML = `
+        <div class="panel-profile">
+          <div class="panel-avatar">${t.avatar}</div>
+          <div class="panel-name">${t.name}</div>
+          <div class="panel-status ${online ? 'online' : 'offline'}">${online ? '🟢 Đang hoạt động' : '⚫ Ngoại tuyến'}</div>
+          <div class="panel-phone"><i class="ti ti-phone"></i> ${t.phone}</div>
+        </div>
+        <div class="panel-actions">
+          <button class="panel-btn" onclick="startCall(false)"><i class="ti ti-phone"></i>Gọi thoại</button>
+          <button class="panel-btn" onclick="startCall(true)"><i class="ti ti-video"></i>Video call</button>
+          ${friendBtnHtml}
+        </div>
+        <div class="panel-media">
+          <div class="panel-section-title">Ảnh & File</div>
+          <div class="panel-media-grid" id="panelMediaGrid"></div>
+        </div>
+      `;
+      DB.getMessages(APP.activeConvId).then(msgs => {
+        const grid = document.getElementById('panelMediaGrid');
+        if (!grid) return;
+        msgs.filter(m => m.type === 'image').forEach(m => {
+          const img = document.createElement('img');
+          img.src = m.text; img.onclick = () => window.open(m.text);
+          grid.appendChild(img);
+        });
+        if (!grid.children.length) grid.innerHTML = '<p style="color:var(--muted);font-size:13px;">Chưa có ảnh</p>';
+      });
+    } else {
+      const g = _allGroups.find(g => g.id === APP.activeConvId);
+      body.innerHTML = `
+        <div class="panel-profile">
+          <div class="panel-avatar">👥</div>
+          <div class="panel-name">${g?.name}</div>
+          <div class="panel-phone">${g?.members?.length} thành viên</div>
+        </div>
+        <div class="panel-actions">
+          <button class="panel-btn" onclick="startCall(false)"><i class="ti ti-phone"></i>Gọi nhóm</button>
+          <button class="panel-btn" onclick="startCall(true)"><i class="ti ti-video"></i>Video nhóm</button>
+        </div>
+        <div class="panel-section-title" style="padding:12px 16px 8px;">Thành viên</div>
+        <div id="groupMembersList"></div>
+      `;
+      const ml = document.getElementById('groupMembersList');
+      g?.members?.forEach(uid => {
+        const u = _allUsers.find(u => u.id === uid);
+        if (!u) return;
+        const online = isOnline(uid);
+        const div = document.createElement('div');
+        div.className = 'member-row';
+        div.innerHTML = `<span>${u.avatar}</span><span>${u.name}</span><span style="color:${online ? '#4caf50' : '#9ca3af'};font-size:11px;">${online ? '🟢' : '⚫'}</span>${uid === g.createdBy ? '<span class="badge">Trưởng nhóm</span>' : ''}`;
+        ml.appendChild(div);
+      });
+    }
   }
 
+  // ================================================================
+  // CALL SYSTEM (PeerJS - same as before)
+  // ================================================================
+  let peer = null, activeCalls = {}, localStream = null;
+  let callTimerInterval = null, callStartTime = null, callDurationSecs = 0;
+
+  function startCallTimer() {
+    stopCallTimer();
+    callStartTime = Date.now();
+    document.getElementById('callTimer').classList.remove('hidden');
+    document.getElementById('callStatus').classList.add('hidden');
+    callTimerInterval = setInterval(() => {
+      callDurationSecs = Math.floor((Date.now() - callStartTime) / 1000);
+      const m = String(Math.floor(callDurationSecs / 60)).padStart(2,'0');
+      const s = String(callDurationSecs % 60).padStart(2,'0');
+      document.getElementById('callTimerDisplay').textContent = m + ':' + s;
+    }, 1000);
+  }
+  function stopCallTimer() {
+    if (callTimerInterval) { clearInterval(callTimerInterval); callTimerInterval = null; }
+    const t = document.getElementById('callTimer'), s = document.getElementById('callStatus');
+    if (t) t.classList.add('hidden');
+    if (s) { s.classList.remove('hidden'); s.textContent = 'Đang gọi...'; }
+  }
+  function formatDuration(secs) {
+    const m = Math.floor(secs/60), s = secs%60;
+    return m === 0 ? `${s} giây` : `${m} phút ${s} giây`;
+  }
+
+  async function initPeer() {
+    if (peer && !peer.destroyed) return peer;
+    return new Promise(resolve => {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js';
+      script.onload = () => {
+        const peerId = 'cntt1808_' + APP.currentUser.id + '_' + Date.now();
+        peer = new Peer(peerId, { config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
+        peer.on('open', () => { APP.myPeerId = peerId; resolve(peer); });
+        peer.on('call', handleIncomingCall);
+        peer.on('error', () => resolve(peer));
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  function endCall(fromRemote = false) {
+    const duration = callDurationSecs;
+    stopCallTimer(); callDurationSecs = 0;
+    if (!fromRemote) {
+      const signal = { type: 'end_call', by: APP.currentUser.id, time: Date.now() };
+      // Broadcast via Firebase
+      set(ref(db, 'callSignals/' + APP.activeConvId), signal);
+      setTimeout(() => remove(ref(db, 'callSignals/' + APP.activeConvId)), 4000);
+    }
+    Object.values(activeCalls).forEach(c => { try { c.close(); } catch(e) {} });
+    activeCalls = {};
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    document.getElementById('callModal').classList.add('hidden');
+    document.getElementById('videoGrid').innerHTML = '';
+    document.getElementById('localVideo').srcObject = null;
+    if (duration > 0) showToast(`📞 Cuộc gọi kết thúc · ${formatDuration(duration)}`, 'info');
+  }
+
+  async function startCall(isVideo) {
+    if (!APP.activeConvTarget) return;
+    const isGroup = APP.activeConvType === 'group';
+    try { localStream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true }); }
+    catch(e) { showToast('Không thể truy cập ' + (isVideo ? 'camera/mic' : 'mic'), 'error'); return; }
+    await initPeer();
+    // Store peer ID in Firebase
+    await update(ref(db, 'peers'), { [APP.currentUser.id]: APP.myPeerId });
+    const peerSnap = await get(ref(db, 'peers'));
+    const peerMap = peerSnap.exists() ? peerSnap.val() : {};
+    showCallModal(APP.activeConvTarget.name, APP.activeConvTarget.avatar || '👥', isVideo);
+    document.getElementById('localVideo').srcObject = localStream;
+    document.getElementById('videoGrid').innerHTML = '';
+    activeCalls = {};
+    if (!isGroup) {
+      const targetPeerId = peerMap[APP.activeConvTarget.id];
+      if (!targetPeerId) { showToast(`${APP.activeConvTarget.name} chưa online để nhận cuộc gọi`, 'info'); endCall(); return; }
+      makeCall(targetPeerId, localStream);
+      sendMessage('call', `📞 Cuộc gọi ${isVideo ? 'video' : 'thoại'}`, { callType: isVideo ? 'video' : 'voice' });
+    } else {
+      const members = APP.activeConvTarget.members.filter(id => id !== APP.currentUser.id);
+      let calledAny = false;
+      members.forEach(uid => { const pid = peerMap[uid]; if (pid) { makeCall(pid, localStream); calledAny = true; } });
+      if (!calledAny) { showToast('Không có thành viên nào online', 'info'); endCall(); return; }
+      sendMessage('call', `📞 Cuộc gọi nhóm ${isVideo ? 'video' : 'thoại'}`, { callType: isVideo ? 'video' : 'voice' });
+    }
+  }
+
+  function makeCall(targetPeerId, stream) {
+    const call = peer.call(targetPeerId, stream);
+    activeCalls[targetPeerId] = call;
+    call.on('stream', remoteStream => { addVideoStream(remoteStream, targetPeerId); document.getElementById('callStatus').textContent = 'Đã kết nối'; startCallTimer(); });
+    call.on('close', () => { removeVideoStream(targetPeerId); if (!Object.keys(activeCalls).length) { showToast('📴 Người dùng kia đã kết thúc cuộc gọi', 'info'); endCall(true); } });
+    call.on('error', () => removeVideoStream(targetPeerId));
+  }
+  function addVideoStream(stream, peerId) {
+    let video = document.getElementById('vid_' + peerId);
+    if (!video) { video = document.createElement('video'); video.id = 'vid_' + peerId; video.autoplay = true; video.playsInline = true; document.getElementById('videoGrid').appendChild(video); }
+    video.srcObject = stream;
+  }
+  function removeVideoStream(peerId) {
+    const video = document.getElementById('vid_' + peerId);
+    if (video) video.remove();
+    if (activeCalls[peerId]) { try { activeCalls[peerId].close(); } catch(e) {} delete activeCalls[peerId]; }
+  }
+  function handleIncomingCall(call) {
+    APP.pendingCall = call;
+    get(ref(db, 'peers')).then(snap => {
+      const peerMap = snap.exists() ? snap.val() : {};
+      const callerEntry = Object.entries(peerMap).find(([uid, pid]) => pid === call.peer);
+      const callerUid = callerEntry ? callerEntry[0] : null;
+      const caller = _allUsers.find(u => u.id === callerUid);
+      showIncomingCall(caller?.name || 'Ai đó', caller?.avatar || '👤');
+    });
+  }
+  function showCallModal(name, avatar, isVideo) {
+    const m = document.getElementById('callModal');
+    document.getElementById('callName').textContent = name;
+    document.getElementById('callAvatar').textContent = avatar;
+    document.getElementById('callStatus').textContent = isVideo ? '📹 Đang kết nối...' : '📞 Đang kết nối...';
+    document.getElementById('callTimer').classList.add('hidden');
+    document.getElementById('callTimerDisplay').textContent = '00:00';
+    m.classList.remove('hidden');
+    if (!isVideo) m.classList.add('voice-only'); else m.classList.remove('voice-only');
+  }
+  function showIncomingCall(name, avatar) {
+    document.getElementById('incomingName').textContent = name;
+    document.getElementById('incomingAvatar').textContent = avatar;
+    document.getElementById('incomingCall').classList.remove('hidden');
+  }
+
+  document.getElementById('videoCallBtn').onclick = () => startCall(true);
+  document.getElementById('voiceCallBtn').onclick = () => startCall(false);
+  document.getElementById('endCallBtn').onclick = () => endCall(false);
+  document.getElementById('acceptCallBtn').onclick = async () => {
+    document.getElementById('incomingCall').classList.add('hidden');
+    const call = APP.pendingCall; if (!call) return;
+    try { localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); }
+    catch(e) { localStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    document.getElementById('videoGrid').innerHTML = ''; activeCalls = {};
+    call.answer(localStream); activeCalls[call.peer] = call;
+    call.on('stream', remoteStream => { addVideoStream(remoteStream, call.peer); startCallTimer(); });
+    call.on('close', () => { removeVideoStream(call.peer); showToast('📴 Người dùng kia đã kết thúc cuộc gọi', 'info'); endCall(true); });
+    showCallModal('Cuộc gọi đến', '📞', true);
+    document.getElementById('localVideo').srcObject = localStream;
+  };
+  document.getElementById('rejectCallBtn').onclick = () => {
+    document.getElementById('incomingCall').classList.add('hidden');
+    if (APP.pendingCall) APP.pendingCall.close();
+    showToast('Đã từ chối cuộc gọi', 'info');
+  };
+  document.getElementById('toggleMicBtn').onclick = function() {
+    if (!localStream) return;
+    const tracks = localStream.getAudioTracks();
+    tracks.forEach(t => t.enabled = !t.enabled);
+    const on = tracks[0]?.enabled;
+    this.innerHTML = `<i class="ti ti-microphone${on ? '' : '-off'}"></i>`; this.classList.toggle('muted', !on);
+  };
+  document.getElementById('toggleCamBtn').onclick = function() {
+    if (!localStream) return;
+    const tracks = localStream.getVideoTracks();
+    tracks.forEach(t => t.enabled = !t.enabled);
+    const on = tracks[0]?.enabled;
+    this.innerHTML = `<i class="ti ti-video${on ? '' : '-off'}"></i>`; this.classList.toggle('muted', !on);
+  };
+  document.getElementById('toggleScreenBtn').onclick = async function() {
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const screenTrack = screenStream.getVideoTracks()[0];
+      Object.values(activeCalls).forEach(call => {
+        if (call.peerConnection) {
+          const sender = call.peerConnection.getSenders().find(s => s.track?.kind === 'video');
+          if (sender) sender.replaceTrack(screenTrack);
+        }
+      });
+      document.getElementById('localVideo').srcObject = screenStream;
+      screenTrack.onended = () => showToast('Đã dừng chia sẻ màn hình', 'info');
+      showToast('Đang chia sẻ màn hình', 'success');
+    } catch(e) { showToast('Không thể chia sẻ màn hình', 'error'); }
+  };
+
   window.startCall = startCall;
+
+  // ================================================================
+  // BOOT
+  // ================================================================
+  boot();
 </script>
 </body>
 </html>
