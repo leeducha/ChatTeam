@@ -1799,31 +1799,27 @@
   const ICE_CONFIG = {
     iceTransportPolicy: 'all',
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      // Metered TURN - miễn phí, ổn định xuyên NAT/firewall
+      { urls: 'stun:stun.relay.metered.ca:80' },
       {
-        urls: [
-          'turn:a.relay.metered.ca:80',
-          'turn:a.relay.metered.ca:80?transport=tcp',
-          'turn:a.relay.metered.ca:443',
-          'turn:a.relay.metered.ca:443?transport=tcp',
-        ],
-        username: 'e8d9e6fbd41b8e7e0e9bfd71',
-        credential: 'uqKLqRKxFKrfxwOx'
-      },
-      // Fallback TURN Twilio-style
-      {
-        urls: 'turn:openrelay.metered.ca:80',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
+        urls: 'turn:global.relay.metered.ca:80',
+        username: '37748e6d1e564a617331c7b8',
+        credential: 'QpABUCd531Y07Y7t',
       },
       {
-        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-        username: 'openrelayproject',
-        credential: 'openrelayproject'
-      }
+        urls: 'turn:global.relay.metered.ca:80?transport=tcp',
+        username: '37748e6d1e564a617331c7b8',
+        credential: 'QpABUCd531Y07Y7t',
+      },
+      {
+        urls: 'turn:global.relay.metered.ca:443',
+        username: '37748e6d1e564a617331c7b8',
+        credential: 'QpABUCd531Y07Y7t',
+      },
+      {
+        urls: 'turns:global.relay.metered.ca:443?transport=tcp',
+        username: '37748e6d1e564a617331c7b8',
+        credential: 'QpABUCd531Y07Y7t',
+      },
     ]
   };
 
