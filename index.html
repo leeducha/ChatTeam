@@ -367,58 +367,98 @@
     const d = localStorage.getItem('cntt1808_users');
     if (d) return JSON.parse(d);
     const defaults = [
-      { id: 'u1', name: 'Lê Đức Hà', phone: '0901234567', password: '123456', avatar: '🧑‍💻', status: 'online' },
-      { id: 'u2', name: 'CNTT1808 Admin', phone: '0912345678', password: '123456', avatar: '👨‍🏫', status: 'online' },
-      { id: 'u3', name: 'Nguyễn Thị Mai', phone: '0923456789', password: '123456', avatar: '👩‍🎓', status: 'offline' },
-      { id: 'u4', name: 'Trần Văn Bình', phone: '0934567890', password: '123456', avatar: '👦', status: 'offline' },
-      { id: 'u5', name: 'Phạm Thu Hà', phone: '0945678901', password: '123456', avatar: '👩', status: 'online' },
+      { id: 'u1', name: 'Lê Đức Hà', phone: '0901234567', password: '123456', avatar: '🧑‍💻', status: 'offline', registeredAt: Date.now() - 9e6 },
+      { id: 'u2', name: 'CNTT1808 Admin', phone: '0912345678', password: '123456', avatar: '👨‍🏫', status: 'offline', registeredAt: Date.now() - 8e6 },
+      { id: 'u3', name: 'Nguyễn Thị Mai', phone: '0923456789', password: '123456', avatar: '👩‍🎓', status: 'offline', registeredAt: Date.now() - 7e6 },
+      { id: 'u4', name: 'Trần Văn Bình', phone: '0934567890', password: '123456', avatar: '👦', status: 'offline', registeredAt: Date.now() - 6e6 },
+      { id: 'u5', name: 'Phạm Thu Hà', phone: '0945678901', password: '123456', avatar: '👩', status: 'offline', registeredAt: Date.now() - 5e6 },
     ];
-    saveUsers(defaults);
+    localStorage.setItem('cntt1808_users', JSON.stringify(defaults));
     return defaults;
   }
 
-  let _lastUserCount = null;
-
   function saveUsers(users) {
     localStorage.setItem('cntt1808_users', JSON.stringify(users));
-    // Phát hiện ngay khi có người đăng ký trong chính tab này
-    if (_lastUserCount !== null && users.length > _lastUserCount) {
-      const newest = users[users.length - 1];
-      onNewUserDetected(newest);
-    }
-    _lastUserCount = users.length;
   }
 
-  function onNewUserDetected(u) {
-    // Tránh thông báo trùng lặp trong 2 giây
-    const key = 'notified_' + u.id;
-    if (sessionStorage.getItem(key)) return;
-    sessionStorage.setItem(key, '1');
-    showNewUserNotification(u);
-    try { bc.postMessage({ type: 'new_user', user: { id: u.id, name: u.name, phone: u.phone, avatar: u.avatar } }); } catch(e) {}
-    const backupModal = document.getElementById('backupModal');
-    if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
+  // ===== HEARTBEAT ONLINE SYSTEM =====
+  // Mỗi user đang mở app ghi timestamp vào localStorage mỗi 20s.
+  // Nếu quá 45s không ghi => coi là offline.
+  const HB_KEY    = id => 'cntt1808_hb_' + id;
+  const HB_WRITE  = 20000;  // ghi heartbeat mỗi 20s
+  const HB_EXPIRE = 45000;  // quá 45s = offline
+  let _hbTimer = null;
+
+  function hbWrite(userId) {
+    localStorage.setItem(HB_KEY(userId), String(Date.now()));
+  }
+  function hbClear(userId) {
+    localStorage.removeItem(HB_KEY(userId));
+  }
+  function isOnline(userId) {
+    const ts = localStorage.getItem(HB_KEY(userId));
+    if (!ts) return false;
+    return (Date.now() - Number(ts)) < HB_EXPIRE;
   }
 
-  // Polling mỗi 3 giây — bắt được cả khi tab khác cùng máy đăng ký
-  function startUserPolling() {
-    _lastUserCount = (JSON.parse(localStorage.getItem('cntt1808_users') || '[]')).length;
+  function startHeartbeat(userId) {
+    stopHeartbeat();
+    hbWrite(userId);
+    _hbTimer = setInterval(() => hbWrite(userId), HB_WRITE);
+  }
+  function stopHeartbeat() {
+    if (_hbTimer) { clearInterval(_hbTimer); _hbTimer = null; }
+  }
+
+  // Đóng tab/trình duyệt → xóa heartbeat ngay lập tức
+  window.addEventListener('beforeunload', () => {
+    if (APP.currentUser) hbClear(APP.currentUser.id);
+  });
+  // Quay lại tab → ghi lại ngay
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && APP.currentUser) hbWrite(APP.currentUser.id);
+  });
+
+  // ===== NEW USER DETECTION & POLLING =====
+  // Snapshot số lượng users ngay từ đầu, TRƯỚC khi enterChat
+  let _knownUserIds = new Set((JSON.parse(localStorage.getItem('cntt1808_users') || '[]')).map(u => u.id));
+
+  function checkForNewUsers() {
+    try {
+      const users = JSON.parse(localStorage.getItem('cntt1808_users') || '[]');
+      users.forEach(u => {
+        if (!_knownUserIds.has(u.id)) {
+          _knownUserIds.add(u.id);
+          // Chỉ hiện toast nếu đang ở chat screen (đã đăng nhập)
+          if (APP.currentUser && u.id !== APP.currentUser.id) {
+            showNewUserNotification(u);
+            try { bc.postMessage({ type: 'new_user', user: u }); } catch(e) {}
+          }
+          // Luôn cập nhật backup modal nếu đang mở
+          const backupModal = document.getElementById('backupModal');
+          if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
+        }
+      });
+    } catch(e) {}
+  }
+
+  // Polling tổng hợp: phát hiện user mới + cập nhật trạng thái online mỗi 3s
+  function startPolling() {
     setInterval(() => {
-      try {
-        const users = JSON.parse(localStorage.getItem('cntt1808_users') || '[]');
-        if (users.length > _lastUserCount) {
-          const newOnes = users.slice(_lastUserCount);
-          newOnes.forEach(u => onNewUserDetected(u));
-        }
-        _lastUserCount = users.length;
-        // Tự động refresh bảng nếu modal đang mở
-        const backupModal = document.getElementById('backupModal');
-        if (backupModal && !backupModal.classList.contains('hidden')) {
-          renderBackupList();
-        }
-      } catch(e) {}
+      checkForNewUsers();
+      // Cập nhật danh sách chat nếu đang ở chat screen
+      if (APP.currentUser) {
+        const searchVal = document.getElementById('searchInput')?.value || '';
+        renderConvList(searchVal);
+      }
+      // Cập nhật backup modal nếu đang mở
+      const backupModal = document.getElementById('backupModal');
+      if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
     }, 3000);
   }
+
+  // Gọi startPolling ngay từ đầu (trước cả khi đăng nhập)
+  startPolling();
 
   function loadMessages(convId) {
     const d = localStorage.getItem('cntt1808_msgs_' + convId);
@@ -591,11 +631,9 @@
     const user = users.find(u => u.phone === account || u.name.toLowerCase() === account.toLowerCase());
     if (!user) { showMsg('Không tìm thấy tài khoản.', 'error'); return; }
     if (user.password !== password) { showMsg('Mật khẩu không đúng.', 'error'); return; }
-    user.status = 'online';
-    saveUsers(users);
     APP.currentUser = user;
     localStorage.setItem('cntt1808_session', user.id);
-    setOnline(user.id);
+    hbWrite(user.id);
     showMsg('Đăng nhập thành công! Chào ' + user.name, 'success');
     setTimeout(enterChat, 800);
   });
@@ -616,10 +654,13 @@
     const newUser = { id: 'u_' + Date.now(), name, phone, password, avatar: avatars[Math.floor(Math.random()*avatars.length)], status: 'online', registeredAt: Date.now() };
     users.push(newUser);
     saveUsers(users);
+    // Đánh dấu user này đã biết (để không self-notify) NHƯNG vẫn broadcast cho tab khác
+    _knownUserIds.add(newUser.id);
+    try { bc.postMessage({ type: 'new_user', user: newUser }); } catch(e) {}
     showMsg('Đăng ký thành công! Đang đăng nhập...', 'success');
     APP.currentUser = newUser;
     localStorage.setItem('cntt1808_session', newUser.id);
-    setOnline(newUser.id);
+    hbWrite(newUser.id);
     setTimeout(enterChat, 1000);
   });
 
@@ -632,103 +673,13 @@
     showMsg('Đã ghi nhận yêu cầu đặt lại mật khẩu.', 'success');
   });
 
-  // ===== ONLINE STATUS SYSTEM =====
-  // Mỗi người dùng đang hoạt động ghi timestamp heartbeat vào localStorage
-  // Key: cntt1808_heartbeat_<userId> = timestamp (ms)
-  // Nếu heartbeat quá 45s => coi là offline
-
-  const HEARTBEAT_INTERVAL = 20000;  // gửi heartbeat mỗi 20 giây
-  const HEARTBEAT_TIMEOUT  = 45000;  // quá 45s không heartbeat => offline
-  let _heartbeatTimer = null;
-
-  function setOnline(userId) {
-    localStorage.setItem('cntt1808_heartbeat_' + userId, Date.now().toString());
-    // Cũng cập nhật trường status trong danh sách users
-    const users = loadUsers();
-    const u = users.find(u => u.id === userId);
-    if (u && u.status !== 'online') { u.status = 'online'; saveUsers(users); }
-  }
-
-  function setOffline(userId) {
-    localStorage.removeItem('cntt1808_heartbeat_' + userId);
-    const users = loadUsers();
-    const u = users.find(u => u.id === userId);
-    if (u) { u.status = 'offline'; saveUsers(users); }
-  }
-
-  function isUserOnline(userId) {
-    const ts = localStorage.getItem('cntt1808_heartbeat_' + userId);
-    if (!ts) return false;
-    return (Date.now() - parseInt(ts, 10)) < HEARTBEAT_TIMEOUT;
-  }
-
-  function startHeartbeat() {
-    if (_heartbeatTimer) clearInterval(_heartbeatTimer);
-    if (!APP.currentUser) return;
-    setOnline(APP.currentUser.id);
-    _heartbeatTimer = setInterval(() => {
-      if (APP.currentUser) setOnline(APP.currentUser.id);
-    }, HEARTBEAT_INTERVAL);
-  }
-
-  function stopHeartbeat() {
-    if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null; }
-    if (APP.currentUser) setOffline(APP.currentUser.id);
-  }
-
-  // Khi ẩn tab (chuyển tab, minimize), tạm ngừng heartbeat → người khác thấy offline sau 45s
-  document.addEventListener('visibilitychange', () => {
-    if (!APP.currentUser) return;
-    if (document.hidden) {
-      // Không dừng hẳn — vẫn ghi heartbeat khi tab ẩn để không offline ngay
-      // Nếu muốn "ẩn tab = offline" thì bỏ comment dòng dưới:
-      // stopHeartbeat();
-    } else {
-      setOnline(APP.currentUser.id);
-    }
-  });
-
-  // Khi đóng tab/trình duyệt → set offline ngay (sendBeacon để đảm bảo chạy kịp)
-  window.addEventListener('beforeunload', () => {
-    if (APP.currentUser) {
-      localStorage.removeItem('cntt1808_heartbeat_' + APP.currentUser.id);
-      const users = loadUsers();
-      const u = users.find(u => u.id === APP.currentUser.id);
-      if (u) { u.status = 'offline'; localStorage.setItem('cntt1808_users', JSON.stringify(users)); }
-    }
-  });
-
-  // Polling cập nhật trạng thái real-time mỗi 5 giây:
-  // kiểm tra heartbeat của tất cả users và đồng bộ field status
-  function startStatusPolling() {
-    setInterval(() => {
-      const users = loadUsers();
-      let changed = false;
-      users.forEach(u => {
-        const online = isUserOnline(u.id);
-        const newStatus = online ? 'online' : 'offline';
-        if (u.status !== newStatus) { u.status = newStatus; changed = true; }
-      });
-      if (changed) {
-        localStorage.setItem('cntt1808_users', JSON.stringify(users));
-        try { bc.postMessage({ type: 'status_update' }); } catch(e) {}
-      }
-      // Cập nhật sidebar nếu modal backup đang mở
-      const backupModal = document.getElementById('backupModal');
-      if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
-      // Cập nhật danh sách hội thoại (dots online)
-      if (APP.currentUser) renderConvList(document.getElementById('searchInput')?.value || '');
-    }, 5000);
-  }
-
   const savedSession = localStorage.getItem('cntt1808_session');
   if (savedSession) {
     const users = loadUsers();
     const user = users.find(u => u.id === savedSession);
     if (user) {
-      user.status = 'online';
-      saveUsers(users);
       APP.currentUser = user;
+      hbWrite(user.id); // ghi online ngay khi restore session
       enterChat();
     }
   }
@@ -743,18 +694,15 @@
     const u = APP.currentUser;
     document.getElementById('myName').textContent = u.name;
     document.getElementById('myAvatar').textContent = u.avatar;
+    startHeartbeat(u.id); // bắt đầu heartbeat
     renderConvList();
     setupBroadcastListener();
-    startUserPolling();
-    startHeartbeat();
-    startStatusPolling();
+    // startUserPolling đã chạy từ đầu, không cần gọi lại
   }
 
   document.getElementById('logoutBtn').onclick = () => {
     stopHeartbeat();
-    const users = loadUsers();
-    const u = users.find(u => u.id === APP.currentUser.id);
-    if (u) { u.status = 'offline'; saveUsers(users); }
+    if (APP.currentUser) hbClear(APP.currentUser.id);
     localStorage.removeItem('cntt1808_session');
     APP.currentUser = null;
     chatScreen.classList.add('hidden');
@@ -917,7 +865,7 @@
         </div>`;
     }
     div.innerHTML = `
-      <div class="find-avatar">${u.avatar}<span class="conv-dot ${isUserOnline(u.id) ? 'online' : 'offline'}"></span></div>
+      <div class="find-avatar">${u.avatar}<span class="conv-dot ${isOnline(u.id) ? 'online' : 'offline'}"></span></div>
       <div class="find-info">
         <div class="find-name">${u.name}</div>
         <div class="find-phone"><i class="ti ti-phone"></i>${u.phone}</div>
@@ -934,9 +882,9 @@
     div.dataset.id = convId;
     const timeStr = lastTime ? formatTime(lastTime) : '';
     const truncated = (lastMsg || '').length > 30 ? lastMsg.slice(0, 30) + '...' : lastMsg;
-    const isOnline = type !== 'group' && target?.id ? isUserOnline(target.id) : false;
+    const _online = type !== 'group' && target?.id ? isOnline(target.id) : false;
     div.innerHTML = `
-      <div class="conv-avatar">${avatar}<span class="conv-dot ${type === 'group' ? 'online' : isOnline ? 'online' : 'offline'}"></span></div>
+      <div class="conv-avatar">${avatar}<span class="conv-dot ${type === 'group' ? 'group' : _online ? 'online' : 'offline'}"></span></div>
       <div class="conv-info">
         <div class="conv-name">${name}</div>
         <div class="conv-last">${escapeHtml(truncated)}</div>
@@ -960,10 +908,10 @@
     document.getElementById('chatName').textContent = name;
     document.getElementById('chatAvatar').textContent = avatar;
 
-    const isOnline = target?.id ? isUserOnline(target.id) : target?.status === 'online';
+    const _chatOnline = target?.id ? isOnline(target.id) : false;
     document.getElementById('chatStatus').textContent = type === 'group' 
       ? (target?.members?.length || 0) + ' thành viên'
-      : isOnline ? 'Đang hoạt động' : 'Ngoại tuyến';
+      : _chatOnline ? 'Đang hoạt động' : 'Ngoại tuyến';
 
     document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
     const el = document.querySelector(`.conv-item[data-id="${convId}"]`);
@@ -1491,7 +1439,7 @@
         <div class="panel-profile">
           <div class="panel-avatar">${t.avatar}</div>
           <div class="panel-name">${t.name}</div>
-          <div class="panel-status ${isUserOnline(t.id) ? 'online' : 'offline'}">${isUserOnline(t.id) ? '🟢 Đang hoạt động' : '⚫ Ngoại tuyến'}</div>
+          <div class="panel-status ${isOnline(t.id) ? 'online' : 'offline'}">${isOnline(t.id) ? '🟢 Đang hoạt động' : '⚫ Ngoại tuyến'}</div>
           <div class="panel-phone"><i class="ti ti-phone"></i> ${t.phone}</div>
         </div>
         <div class="panel-actions">
@@ -1565,14 +1513,13 @@
         updateFindBadge();
       }
       if (e.data.type === 'new_user') {
-        showNewUserNotification(e.data.user);
+        const u = e.data.user;
+        if (!_knownUserIds.has(u.id)) {
+          _knownUserIds.add(u.id);
+          showNewUserNotification(u);
+        }
         const backupModal = document.getElementById('backupModal');
         if (!backupModal.classList.contains('hidden')) renderBackupList();
-      }
-      if (e.data.type === 'status_update') {
-        renderConvList(document.getElementById('searchInput').value);
-        const backupModal = document.getElementById('backupModal');
-        if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
       }
       if (e.data.type === 'end_call') {
         // Bên kia tắt máy → ngắt modal phía này
@@ -1590,16 +1537,16 @@
     const countEl = document.getElementById('backupUserCount');
     const listEl = document.getElementById('backupUserList');
     const refreshEl = document.getElementById('backupLastRefresh');
-    const onlineCount = users.filter(u => isUserOnline(u.id)).length;
-    countEl.textContent = `${users.length} tài khoản • ${onlineCount} đang online`;
+    const onlineCount = users.filter(u => isOnline(u.id)).length;
+    countEl.textContent = `${users.length} tài khoản • 🟢 ${onlineCount} đang online`;
     refreshEl.textContent = 'Cập nhật lúc: ' + new Date().toLocaleTimeString('vi-VN');
     listEl.innerHTML = '';
     sorted.forEach((u, idx) => {
       const isNew = u.registeredAt && (Date.now() - u.registeredAt < 120000);
+      const online = isOnline(u.id);
       const row = document.createElement('div');
       row.className = 'backup-user-row' + (isNew ? ' is-new' : '');
       const dateStr = u.registeredAt ? new Date(u.registeredAt).toLocaleString('vi-VN') : '—';
-      const isDefault = u.id.startsWith('u1') || u.id.startsWith('u2') || u.id.startsWith('u3') || u.id.startsWith('u4') || u.id.startsWith('u5');
       row.innerHTML = `
         <div class="backup-rank">${idx + 1}</div>
         <div class="backup-avatar">${u.avatar}</div>
@@ -1608,7 +1555,7 @@
           <div class="backup-phone"><i class="ti ti-phone" style="font-size:12px;"></i> ${u.phone}</div>
         </div>
         <div class="backup-right">
-          <div class="backup-status ${isUserOnline(u.id) ? 'online' : 'offline'}">${isUserOnline(u.id) ? '🟢 Online' : '⚫ Offline'}</div>
+          <div class="backup-status ${online ? 'online' : 'offline'}">${online ? '🟢 Online' : '⚫ Offline'}</div>
           <div class="backup-date"><i class="ti ti-calendar" style="font-size:11px;"></i> ${dateStr}</div>
         </div>
       `;
@@ -1673,19 +1620,22 @@
     showToast('✅ Đã xuất file CSV!', 'success');
   };
 
-  // Lắng nghe storage event để phát hiện người đăng ký mới từ tab khác
+  // Lắng nghe storage event — bắt mọi thay đổi từ tab khác
   window.addEventListener('storage', e => {
-    if (e.key === 'cntt1808_users' && e.newValue && e.oldValue) {
+    // Tab khác có user mới đăng ký
+    if (e.key === 'cntt1808_users' && e.newValue) {
       try {
-        const oldList = JSON.parse(e.oldValue);
-        const newList = JSON.parse(e.newValue);
-        if (newList.length > oldList.length) {
-          const newest = newList[newList.length - 1];
-          showNewUserNotification(newest);
-          const backupModal = document.getElementById('backupModal');
-          if (!backupModal.classList.contains('hidden')) renderBackupList();
-        }
+        checkForNewUsers(); // dùng hàm polling chung để tránh duplicate
+        const backupModal = document.getElementById('backupModal');
+        if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
+        if (APP.currentUser) renderConvList(document.getElementById('searchInput')?.value || '');
       } catch(err) {}
+    }
+    // Heartbeat thay đổi → cập nhật dots
+    if (e.key && e.key.startsWith('cntt1808_hb_')) {
+      if (APP.currentUser) renderConvList(document.getElementById('searchInput')?.value || '');
+      const backupModal = document.getElementById('backupModal');
+      if (backupModal && !backupModal.classList.contains('hidden')) renderBackupList();
     }
     // Bên kia tắt cuộc gọi → ngắt modal phía này
     if (e.key === 'cntt1808_call_signal' && e.newValue) {
