@@ -101,7 +101,6 @@
 </head>
 <body>
 
-<!-- Loading Screen -->
 <div id="fbLoading">
   <div class="fb-logo">🔥</div>
   <h2>ChatTeam CNTT1808</h2>
@@ -109,46 +108,6 @@
   <div class="fb-spinner"></div>
 </div>
 
-<!-- Firebase Setup Modal -->
-<div id="setupModal" class="hidden">
-  <div class="setup-box">
-    <h2>🔥 Kết nối Firebase</h2>
-    <p>Để mọi người thật sự thấy nhau từ các máy tính khác nhau, bạn cần kết nối Firebase Realtime Database (miễn phí).</p>
-    <div class="setup-steps">
-      <div class="setup-step">
-        <div class="step-num">1</div>
-        <p>Truy cập <strong>console.firebase.google.com</strong> → Tạo project mới → Vào <strong>Realtime Database</strong> → Tạo database</p>
-      </div>
-      <div class="setup-step">
-        <div class="step-num">2</div>
-        <p>Vào <strong>Rules</strong> tab → Paste: <code>{ "rules": { ".read": true, ".write": true } }</code> → Publish</p>
-      </div>
-      <div class="setup-step">
-        <div class="step-num">3</div>
-        <p>Vào <strong>Project Settings</strong> → <strong>Your apps</strong> → Thêm Web App → Copy <strong>firebaseConfig</strong> object</p>
-      </div>
-    </div>
-    <div class="setup-input-group">
-      <label>Paste firebaseConfig JSON vào đây:</label>
-      <textarea id="fbConfigInput" placeholder='{
-  "apiKey": "AIza...",
-  "authDomain": "your-project.firebaseapp.com",
-  "databaseURL": "https://your-project-default-rtdb.firebaseio.com",
-  "projectId": "your-project",
-  "storageBucket": "your-project.appspot.com",
-  "messagingSenderId": "123...",
-  "appId": "1:123..."
-}'></textarea>
-    </div>
-    <div class="setup-err" id="setupErr"></div>
-    <button class="setup-btn" id="setupSaveBtn"><i class="ti ti-plug-connected"></i>Kết nối Firebase</button>
-    <div class="setup-demo-note">
-      💡 <strong>Lưu ý:</strong> Firebase Realtime Database miễn phí cho đến 1GB dữ liệu và 10GB/tháng bandwidth. Đủ dùng cho nhóm lớp!
-    </div>
-  </div>
-</div>
-
-<!-- AUTH SCREEN -->
 <div id="authScreen" class="auth-screen hidden">
   <main class="app">
     <section class="intro">
@@ -244,7 +203,6 @@
   </main>
 </div>
 
-<!-- CHAT SCREEN -->
 <div id="chatScreen" class="chat-screen hidden">
   <aside class="sidebar">
     <div class="sidebar-header">
@@ -334,7 +292,6 @@
   </div>
 </div>
 
-<!-- STICKER PICKER -->
 <div class="sticker-picker hidden" id="stickerPicker">
   <div class="sticker-header">
     <span>Sticker & Emoji</span>
@@ -350,7 +307,6 @@
   <div class="sticker-grid" id="stickerGrid"></div>
 </div>
 
-<!-- CALL MODAL -->
 <div class="call-modal hidden" id="callModal">
   <div class="call-container">
     <div id="videoGrid" class="video-grid"></div>
@@ -375,7 +331,6 @@
   </div>
 </div>
 
-<!-- INCOMING CALL -->
 <div class="incoming-call hidden" id="incomingCall">
   <div class="incoming-inner">
     <div class="avatar incoming-avatar" id="incomingAvatar">?</div>
@@ -388,7 +343,6 @@
   </div>
 </div>
 
-<!-- NEW GROUP MODAL -->
 <div class="modal-overlay hidden" id="newGroupModal">
   <div class="modal-box">
     <div class="modal-header">
@@ -407,7 +361,6 @@
   </div>
 </div>
 
-<!-- UNFRIEND MODAL -->
 <div class="modal-overlay hidden" id="unfriendModal">
   <div class="modal-box" style="max-width:380px;">
     <div class="modal-header" style="border-bottom:2px solid #ffeaea;">
@@ -441,7 +394,6 @@
 
 <div class="toast hidden" id="toast"></div>
 
-<!-- BACKUP MODAL -->
 <div class="modal-overlay hidden" id="backupModal">
   <div class="modal-box backup-modal-box">
     <div class="modal-header">
@@ -469,7 +421,6 @@
   </div>
 </div>
 
-<!-- NEW USER NOTIFICATION -->
 <div class="new-user-toast hidden" id="newUserToast">
   <div class="new-user-toast-inner">
     <div class="new-user-toast-icon"><i class="ti ti-user-plus"></i></div>
@@ -481,7 +432,6 @@
   </div>
 </div>
 
-<!-- Firebase SDK -->
 <script type="module">
   // ================================================================
   // FIREBASE CONFIG & INIT
@@ -495,19 +445,21 @@
   window.APP = {};
   const APP = window.APP;
 
-  const STORAGE_KEY_CONFIG = 'cntt1808_firebase_config';
-
   let db = null; // Firebase database instance
 
   // ================================================================
-  // SETUP FLOW
+  // SETUP FLOW (Đã nhúng sẵn cấu hình)
   // ================================================================
-  function getSavedConfig() {
-    try {
-      const c = localStorage.getItem(STORAGE_KEY_CONFIG);
-      return c ? JSON.parse(c) : null;
-    } catch(e) { return null; }
-  }
+  const firebaseConfig = {
+    apiKey: "AIzaSyCE9Q49LGTrP5xJzArNNmKfkJg5v2cO5Fk",
+    authDomain: "chatteam-84bef.firebaseapp.com",
+    databaseURL: "https://chatteam-84bef-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "chatteam-84bef",
+    storageBucket: "chatteam-84bef.firebasestorage.app",
+    messagingSenderId: "927580930370",
+    appId: "1:927580930370:web:f0ee4260a54d82eafcc8db",
+    measurementId: "G-1PKJFN5LR6"
+  };
 
   async function tryInitFirebase(config) {
     try {
@@ -535,70 +487,20 @@
   }
 
   async function boot() {
-    const savedConfig = getSavedConfig();
-    if (savedConfig) {
-      try {
-        await tryInitFirebase(savedConfig);
-        hideFbLoading();
-        startApp();
-        return;
-      } catch(e) {
-        localStorage.removeItem(STORAGE_KEY_CONFIG);
-      }
+    try {
+      await tryInitFirebase(firebaseConfig);
+      hideFbLoading();
+      startApp();
+    } catch(e) {
+      console.error("Lỗi kết nối Firebase:", e);
+      hideFbLoading();
+      alert("Lỗi kết nối Firebase. Vui lòng kiểm tra lại đường truyền mạng!");
     }
-    hideFbLoading();
-    showSetupModal();
   }
 
   function hideFbLoading() {
     document.getElementById('fbLoading').style.display = 'none';
   }
-
-  function showSetupModal() {
-    document.getElementById('setupModal').classList.remove('hidden');
-  }
-
-  document.getElementById('setupSaveBtn').onclick = async () => {
-    const raw = document.getElementById('fbConfigInput').value.trim();
-    const errEl = document.getElementById('setupErr');
-    errEl.textContent = '';
-    if (!raw) { errEl.textContent = 'Vui lòng paste firebaseConfig!'; return; }
-    
-    let config;
-    try {
-      // Try to parse as JSON, handle both object literal and JSON
-      const cleaned = raw.replace(/^(const|let|var)\s+\w+\s*=\s*/, '').replace(/;?\s*$/, '');
-      config = JSON.parse(cleaned);
-    } catch(e) {
-      // Try eval as last resort for object literals
-      try {
-        config = Function('"use strict"; return (' + raw + ')')();
-      } catch(e2) {
-        errEl.textContent = 'JSON không hợp lệ. Hãy copy đúng object firebaseConfig!';
-        return;
-      }
-    }
-
-    if (!config.databaseURL) {
-      errEl.textContent = 'Thiếu databaseURL! Hãy bật Realtime Database trong Firebase Console.';
-      return;
-    }
-
-    const btn = document.getElementById('setupSaveBtn');
-    btn.textContent = 'Đang kết nối...';
-    btn.disabled = true;
-
-    try {
-      await tryInitFirebase(config);
-      localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(config));
-      document.getElementById('setupModal').classList.add('hidden');
-      startApp();
-    } catch(e) {
-      errEl.textContent = 'Kết nối thất bại: ' + (e.message || 'Lỗi không xác định');
-      btn.textContent = 'Kết nối Firebase';
-      btn.disabled = false;
-    }
-  };
 
   // ================================================================
   // DATABASE HELPERS (Firebase Realtime DB)
