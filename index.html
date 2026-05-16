@@ -1779,7 +1779,24 @@
   // ================================================================
   const ICE_CONFIG = { iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' }
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    },
+    {
+      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
   ]};
 
   let _localStream   = null;   // MediaStream cục bộ
@@ -1809,9 +1826,15 @@
     let localOk = await startLocalMedia(type);
     if (!localOk) { hideCallModal(); return; }
 
-    // Tạo peer connection + offer ngay
+    // Tạo peer connection TRƯỚC, gán onicecandidate tạm (buffer)
     _peerConn = createPeer();
     _localStream.getTracks().forEach(t => _peerConn.addTrack(t, _localStream));
+
+    // Buffer ICE candidates cho đến khi có callId
+    const pendingCandidates = [];
+    _peerConn.onicecandidate = e => {
+      if (e.candidate) pendingCandidates.push(e.candidate.toJSON());
+    };
 
     const offer = await _peerConn.createOffer();
     await _peerConn.setLocalDescription(offer);
@@ -1828,7 +1851,8 @@
 
     _callData = { callId, call: { fromId: APP.currentUser.id, toId: toUser.id, type }, role: 'caller' };
 
-    // ICE candidates → Firebase
+    // Giờ đã có callId, flush các ICE đã buffer và gán lại handler thật
+    for (const c of pendingCandidates) DB.pushIceCandidate(callId, 'caller', c);
     _peerConn.onicecandidate = e => {
       if (e.candidate) DB.pushIceCandidate(callId, 'caller', e.candidate.toJSON());
     };
@@ -1848,7 +1872,7 @@
         try {
           await _peerConn.setRemoteDescription(new RTCSessionDescription(data.answer));
           await _flushIceCandidates();
-          _onConnected(callId);
+          // _onConnected sẽ tự được gọi khi connectionState === 'connected'
         } catch(e) { console.warn('setRemoteDescription error', e); }
       }
     });
@@ -1920,6 +1944,8 @@
     _peerConn = createPeer();
     _localStream.getTracks().forEach(t => _peerConn.addTrack(t, _localStream));
 
+    // Buffer ICE candidates trước khi có remote description
+    const pendingCalleeCandidates = [];
     _peerConn.onicecandidate = e => {
       if (e.candidate) DB.pushIceCandidate(callId, 'callee', e.candidate.toJSON());
     };
@@ -1934,12 +1960,15 @@
     const answer = await _peerConn.createAnswer();
     await _peerConn.setLocalDescription(answer);
     await DB.updateCall(callId, { answer: { type: answer.type, sdp: answer.sdp }, status: 'connected' });
-    _onConnected(callId);
 
-    // Nghe ICE candidates từ caller
+    // Nghe ICE candidates từ caller (với queue đúng cách)
     DB.listenIceCandidates(callId, 'caller', async c => {
       if (!_peerConn) return;
-      try { await _peerConn.addIceCandidate(new RTCIceCandidate(c)); } catch(e) {}
+      if (_peerConn.remoteDescription) {
+        try { await _peerConn.addIceCandidate(new RTCIceCandidate(c)); } catch(e) {}
+      } else {
+        _iceCandidateQ.push(c);
+      }
     });
 
     // Nghe khi caller kết thúc
@@ -1953,12 +1982,23 @@
     const pc = new RTCPeerConnection(ICE_CONFIG);
     pc.ontrack = e => {
       const remVid = document.getElementById('remoteVideo');
-      if (remVid && e.streams[0]) remVid.srcObject = e.streams[0];
+      if (remVid && e.streams[0]) {
+        remVid.srcObject = e.streams[0];
+        remVid.play().catch(() => {});
+      }
     };
     pc.onconnectionstatechange = () => {
+      console.log('[WebRTC] connectionState:', pc.connectionState);
+      if (pc.connectionState === 'connected') {
+        // Gọi _onConnected khi kết nối thực sự thành công (cả 2 phía)
+        if (_callData && !_callTimerInt) _onConnected(_callData.callId);
+      }
       if (['disconnected','failed','closed'].includes(pc.connectionState)) {
         _cleanupCall(true);
       }
+    };
+    pc.oniceconnectionstatechange = () => {
+      console.log('[WebRTC] iceConnectionState:', pc.iceConnectionState);
     };
     return pc;
   }
@@ -1983,7 +2023,9 @@
   }
 
   function _onConnected(callId) {
-    document.getElementById('callStatus').textContent = 'Đang kết nối';
+    if (_callTimerInt) return; // Đã connected rồi, không gọi lại
+    document.getElementById('callStatus').textContent = 'Đang gọi';
+    document.getElementById('callAvatar').style.display = 'none'; // Ẩn avatar khi có video
     document.getElementById('callTimer').classList.remove('hidden');
     _callSecs = 0;
     _callTimerInt = setInterval(() => {
@@ -1991,7 +2033,6 @@
       const m = String(Math.floor(_callSecs / 60)).padStart(2, '0');
       const s = String(_callSecs % 60).padStart(2, '0');
       document.getElementById('callTimerDisplay').textContent = `${m}:${s}`;
-      document.getElementById('callStatus').textContent = 'Đang gọi';
     }, 1000);
   }
 
@@ -2034,6 +2075,7 @@
     document.getElementById('toggleCamBtn').querySelector('i').className = 'ti ti-video';
     document.getElementById('toggleCamBtn').classList.remove('muted');
     document.getElementById('toggleScreenBtn').querySelector('i').className = 'ti ti-screen-share';
+    document.getElementById('callAvatar').style.display = ''; // Hiện lại avatar
 
     hideCallModal();
   }
